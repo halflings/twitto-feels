@@ -1,11 +1,25 @@
 from mongoengine import Document, fields
 
+class Topic(Document):
+    """
+    Topic database model, giving a name to a topic which needs tracking (via a
+    listener); useful for tweet classifying.
+    """
+    name = fields.StringField()
+    tags = fields.ListField(fields.StringField)
+
+    def __str__(self):
+        return '<{} - {}>'.format(self.name, self.tags)
+
+    __repr__ = __str__
+
 class Tweet(Document):
     """
     Tweet database model, holding some basic information which we really need
     for applying a data mining algorithm on a topic's positivity. It can be
     built from a raw tweet (from Twitter's API), using the make_tweet() helper.
     """
+    topic = fields.ReferenceField(Topic, required=True)
 
     # tweet information
     tweet_id = fields.IntField()
