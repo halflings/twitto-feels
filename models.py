@@ -23,7 +23,7 @@ class Tweet(Document):
     topic = fields.ReferenceField(Topic, required=True)
 
     # tweet information
-    tweet_id = fields.IntField()
+    tweet_id = fields.IntField(unique=True)
     text = fields.StringField()
     hashtags = fields.ListField(fields.StringField())
 
