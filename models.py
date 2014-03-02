@@ -6,7 +6,7 @@ class Topic(Document):
     listener); useful for tweet classifying.
     """
     name = fields.StringField(unique=True)
-    tags = fields.ListField(fields.StringField)
+    tags = fields.ListField(fields.StringField())
 
     def __str__(self):
         return '<{} - {}>'.format(self.name, self.tags)
@@ -25,7 +25,7 @@ class Tweet(Document):
     # tweet information
     tweet_id = fields.IntField()
     text = fields.StringField()
-    hashtags = fields.ListField(fields.StringField)
+    hashtags = fields.ListField(fields.StringField())
 
     # user information
     user = fields.StringField()

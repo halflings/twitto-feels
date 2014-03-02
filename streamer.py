@@ -42,7 +42,7 @@ class TweetListener(tweepy.StreamListener):
         data = json.loads(raw_data)
         if 'limit' in data and 'track' in data['limit']:
             return
-        self.on_tweet(make_tweet(data))
+        self.on_tweet(Tweet.from_raw_tweet(data))
 
     def on_tweet(self, tweet):
         """
@@ -76,6 +76,6 @@ if __name__ == '__main__':
     connect(config.db_name, host=config.db_host, port=config.db_port,
             username=config.db_user, password=config.db_pass)
     topic = Topic.objects.get_or_create(name='Happiness',
-            defaults={ 'tags': ['happy'] })
+            defaults={ 'tags': ['happy'] })[0]
     streamer = TopicStreamer(topic)
     streamer.run()
