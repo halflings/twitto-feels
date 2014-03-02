@@ -5,7 +5,7 @@ class Topic(Document):
     Topic database model, giving a name to a topic which needs tracking (via a
     listener); useful for tweet classifying.
     """
-    name = fields.StringField()
+    name = fields.StringField(unique=True)
     tags = fields.ListField(fields.StringField)
 
     def __str__(self):
@@ -17,7 +17,8 @@ class Tweet(Document):
     """
     Tweet database model, holding some basic information which we really need
     for applying a data mining algorithm on a topic's positivity. It can be
-    built from a raw tweet (from Twitter's API), using the make_tweet() helper.
+    built from a raw tweet (from Twitter's API), using the make_tweet() helper,
+    or the from_raw_tweet() classmethod.
     """
     topic = fields.ReferenceField(Topic, required=True)
 
@@ -30,6 +31,10 @@ class Tweet(Document):
     user = fields.StringField()
     user_id = fields.IntField()
     user_geo_enabled = fields.BooleanField()
+
+    @classmethod
+    def from_raw_tweet(self, data):
+        return make_tweet(data)
 
     def __str__(self):
         return '<@{}> - "{}"'.format(self.user, self.text)
@@ -48,11 +53,7 @@ def make_tweet(data, save=False):
     Make a Tweet object, given a dictionary of raw tweet data.
     """
     tweet = Tweet()
-    try:
-        tweet.tweet_id = data['id']
-    except KeyError:
-        import pprint; pprint.pprint(data)
-        raise
+    tweet.tweet_id = data['id']
     tweet.text = _preprocess_text(data['text'])
     tweet.hashtags = map(lambda hs: _preprocess_text(hs['text']), data['entities']['hashtags'])
     tweet.user = _preprocess_text(data['user']['screen_name'])
