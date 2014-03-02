@@ -6,7 +6,7 @@ import tweepy
 import json
 
 import config
-from tweet import Tweet
+from models import Tweet, make_tweet
 
 auth_ = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
 auth_.set_access_token(config.access_token_key, config.access_token_secret)
@@ -18,8 +18,9 @@ class StreamListener(tweepy.StreamListener):
 
     def on_data(self, raw_data):
         data = json.loads(raw_data)
-        tweet = Tweet(data)
-        self.on_tweet(tweet)
+        if 'limit' in data and 'track' in data['limit']:
+            return
+        self.on_tweet(make_tweet(data))
 
     def on_tweet(self, tweet):
         """
