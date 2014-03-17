@@ -5,6 +5,10 @@ import json
 from models import Tweet, Topic
 
 class TweetListener(tweepy.StreamListener):
+    """
+    Custom tweepy.StreamListener, used to handle tweets directly through the
+    on_tweet method, called with a Tweet object.
+    """
     def on_error(self, status_code):
         print >> sys.stderr, 'Error:', status_code
         return False
