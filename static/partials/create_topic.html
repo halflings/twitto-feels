@@ -1,0 +1,31 @@
+<h1 class="page-header">Create a topic</h1>
+<form role="form" ng-submit="submit()">
+  <div class="form-group">
+    <label for="name">Name</label>
+    <input id="name" type="text" class="form-control" placeholder="Code, Pizzas, etc...">
+  </div>
+
+  <div class="form-group">
+    <label for="tags">Tags</label>
+    <p ng-hide="tags.length">
+      <em>No tags added (yet)</em>
+    </p>
+    <ul ng-show="tags.length" id="tags" class="list-group">
+      <li ng-repeat="tag in tags" class="list-group-item">
+        {{ tag }}
+        <a href="" ng-click="removeTag($index)" class="close">&times;</a>
+      </li>
+    </ul>
+    <div class="input-group">
+      <input ng-model="currentTag" ng-enter="addTag(currentTag)" type="text" class="form-control" placeholder="Add another tag">
+      <span class="input-group-btn">
+        <button ng-click="addTag(currentTag)" class="btn btn-default" type="button">
+          <span class="glyphicon glyphicon-plus"></span>
+        </button>
+      </span>
+    </div>
+    <p><em>Any non-alphanumeric characters will be removed from tags</em></p>
+  </div>
+
+  <button type="submit" class="btn btn-success">Submit</button>
+</form>

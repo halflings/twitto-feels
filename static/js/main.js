@@ -5,12 +5,28 @@ var app = angular.module('twitto-feels', ['ngRoute']);
 app.config(function($routeProvider) {
   $routeProvider.when('/', {
     templateUrl: '/partials/no_topic.html',
-  }).when('/topics/:topicId', {
-    templateUrl: '/partials/topic.html',
-    controller: 'TopicCtrl'
+  }).when('/create_topic', {
+    templateUrl: '/partials/create_topic.html',
+    controller: 'CreateTopicCtrl'
+  }).when('/view_topic/:topicId', {
+    templateUrl: '/partials/view_topic.html',
+    controller: 'ViewTopicCtrl'
   }).otherwise({
     redirectTo: '/'
   });
+});
+
+app.directive('ngEnter', function() {
+  return function($scope, elem, attrs) {
+    elem.bind("keydown keypress", function(evt) {
+      if (evt.which === 13) {
+        $scope.$apply(function (){
+          $scope.$eval(attrs.ngEnter);
+        });
+        evt.preventDefault();
+      }
+    });
+  };
 });
 
 app.factory('ApiService', ['$q', '$http', function($q, $http) {
@@ -71,6 +87,12 @@ app.controller('MainCtrl', ['$scope', '$http', 'TopicsService', 'TweetsService',
   $scope.topics = [];
   $scope.tweets = [];
   $scope.errors = [];
+  $scope.errors.$push = $scope.errors.push;
+  $scope.errors.push = function(obj) {
+    if (this.indexOf(obj) == -1) {
+      this.$push(obj);
+    }
+  };
 
   TopicsService.get().then(function(topics) {
     $scope.topics = topics;
@@ -89,7 +111,7 @@ app.controller('MainCtrl', ['$scope', '$http', 'TopicsService', 'TweetsService',
   };
 }]);
 
-app.controller('TopicCtrl', ['$scope', '$routeParams', function($scope, $routeParams) {
+app.controller('ViewTopicCtrl', ['$scope', '$routeParams', function($scope, $routeParams) {
   angular.forEach($scope.topics, function(topic) {
     if (topic._id.$oid == $routeParams.topicId) {
       $scope.topic = topic;
@@ -104,4 +126,40 @@ app.controller('TopicCtrl', ['$scope', '$routeParams', function($scope, $routePa
       });
     }
   });
+}]);
+
+app.controller('CreateTopicCtrl', ['$scope', 'TopicsService', function($scope, TopicsService) {
+  $scope.tags = [];
+
+  $scope.addTag = function(tag) {
+    tag = tag.toLowerCase().replace(/[^\w]/gi, '');
+    console.log(tag);
+    if ($scope.tags.indexOf(tag) != -1) { return; }
+    $scope.tags.push(tag);
+  };
+
+  $scope.removeTag = function(index) {
+    $scope.tags.splice(index, 1);
+  };
+
+  $scope.submit = function() {
+    var valid = true;
+
+    // Validate name
+    if (!$scope.name) {
+      $scope.errors.push('No name provided for the topic');
+      valid = false;
+    }
+
+    // Validate tags
+    if (!$scope.tags.length) {
+      $scope.errors.push('No tags provided for the topic');
+      valid = false;
+    }
+
+    if (valid) { $scope.$submit(); }
+  };
+
+  $scope.$submit = function() {
+  };
 }]);
