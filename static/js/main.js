@@ -129,13 +129,18 @@ app.controller('ViewTopicCtrl', ['$scope', '$routeParams', function($scope, $rou
 }]);
 
 app.controller('CreateTopicCtrl', ['$scope', 'TopicsService', function($scope, TopicsService) {
+  $scope.name = '';
   $scope.tags = [];
 
+  $scope.currentTag = '';
   $scope.addTag = function(tag) {
     tag = tag.toLowerCase().replace(/[^\w]/gi, '');
-    console.log(tag);
-    if ($scope.tags.indexOf(tag) != -1) { return; }
+    if ($scope.tags.indexOf(tag) != -1) {
+      $scope.errors.push('Tag "' + tag + '" already added');
+      return;
+    }
     $scope.tags.push(tag);
+    $scope.currentTag = '';
   };
 
   $scope.removeTag = function(index) {
@@ -161,5 +166,6 @@ app.controller('CreateTopicCtrl', ['$scope', 'TopicsService', function($scope, T
   };
 
   $scope.$submit = function() {
+    TopicsService.put({ name: $scope.name, tags: $scope.tags });
   };
 }]);
