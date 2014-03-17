@@ -4,9 +4,9 @@ var app = angular.module('twitto-feels', ['ngRoute']);
 
 app.config(function($routeProvider) {
   $routeProvider.when('/', {
-    templateUrl: '/static/partials/no_topic.html',
+    templateUrl: '/partials/no_topic.html',
   }).when('/topics/:topicId', {
-    templateUrl: '/static/partials/topic.html',
+    templateUrl: '/partials/topic.html',
     controller: 'TopicCtrl'
   }).otherwise({
     redirectTo: '/'
@@ -15,13 +15,40 @@ app.config(function($routeProvider) {
 
 app.factory('ApiService', ['$q', '$http', function($q, $http) {
   function Service(baseURL) {
-    this.baseURL = baseURL;
+    this.baseURL = '/api' + baseURL;
   }
 
   Service.prototype.get = function() {
     var deferred = $q.defer();
     $http.get(this.baseURL)
-      .success(function(data) { deferred.resolve(data); })
+      .success(function(obj) { deferred.resolve(obj); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
+  };
+
+  Service.prototype.post = function(obj) {
+    var deferred = $q.defer();
+    $http.post(this.baseURL, obj)
+      .success(function(obj) { deferred.resolve(obj); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
+  };
+
+  Service.prototype.put = function(obj) {
+    var deferred = $q.defer();
+    $http.put(this.baseURL, obj)
+      .success(function(obj) { deferred.resolve(obj); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
+  };
+
+  Service.prototype.delete = function(obj) {
+    var deferred = $q.defer();
+    $http.delete(this.baseURL + '/' + obj._id.$oid)
+      .success(function() { deferred.resolve(); })
       .error(function() { deferred.reject(); })
     ;
     return deferred.promise;

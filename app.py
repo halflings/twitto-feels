@@ -5,8 +5,8 @@ from mongoengine import connect
 from models import Tweet, Topic
 import config
 
-app = Flask(__name__)
-api = Api(app)
+app = Flask(__name__, static_url_path='')
+api = Api(app, prefix='/api')
 
 connect(config.db_name, host=config.db_host, port=config.db_port,
         username=config.db_user, password=config.db_pass)
