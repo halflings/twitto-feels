@@ -34,9 +34,9 @@ app.factory('ApiService', ['$q', '$http', function($q, $http) {
     this.baseURL = '/api' + baseURL;
   }
 
-  Service.prototype.get = function() {
+  Service.prototype.get = function(id) {
     var deferred = $q.defer();
-    $http.get(this.baseURL)
+    $http.get((id !== undefined) ? this.baseURL + '/' + id : this.baseURL)
       .success(function(obj) { deferred.resolve(obj); })
       .error(function() { deferred.reject(); })
     ;
@@ -45,8 +45,12 @@ app.factory('ApiService', ['$q', '$http', function($q, $http) {
 
   Service.prototype.post = function(obj) {
     var deferred = $q.defer();
-    $http.post(this.baseURL, obj)
-      .success(function(obj) { deferred.resolve(obj); })
+    $http({
+      method: 'post',
+      url: this.baseURL,
+      data: JSON.stringify(obj),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    }).success(function(obj) { deferred.resolve(obj); })
       .error(function() { deferred.reject(); })
     ;
     return deferred.promise;
@@ -54,7 +58,7 @@ app.factory('ApiService', ['$q', '$http', function($q, $http) {
 
   Service.prototype.put = function(obj) {
     var deferred = $q.defer();
-    $http.put(this.baseURL, obj)
+    $http.put(this.baseURL + '/' + obj._id.$oid, obj)
       .success(function(obj) { deferred.resolve(obj); })
       .error(function() { deferred.reject(); })
     ;
@@ -166,6 +170,6 @@ app.controller('CreateTopicCtrl', ['$scope', 'TopicsService', function($scope, T
   };
 
   $scope.$submit = function() {
-    TopicsService.put({ name: $scope.name, tags: $scope.tags });
+    TopicsService.post({ name: $scope.name, tags: $scope.tags });
   };
 }]);
