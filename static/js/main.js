@@ -70,18 +70,23 @@ app.controller('MainCtrl', ['$scope', '$http', 'TopicsService', 'TweetsService',
     function($scope, $http, TopicsService, TweetsService) {
   $scope.topics = [];
   $scope.tweets = [];
+  $scope.errors = [];
 
   TopicsService.get().then(function(topics) {
     $scope.topics = topics;
   }, function() {
-    console.log('error while loading topics');
+    $scope.errors.push('Topics loading failed');
   });
 
   TweetsService.get().then(function(tweets) {
     $scope.tweets = tweets;
   }, function() {
-    console.log('error while loading tweets');
+    $scope.errors.push('Tweets loading failed');
   });
+
+  $scope.dismissError = function(index) {
+    $scope.errors.splice(index, 1);
+  };
 }]);
 
 app.controller('TopicCtrl', ['$scope', '$routeParams', function($scope, $routeParams) {
