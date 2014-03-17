@@ -1,60 +1,75 @@
-var app = angular.module('twitto-feels', []);
+"use strict";
 
-app.directive('a', function() {
-  return {
-    restrict: 'E',
-    link: function(scope, elem, attrs) {
-      if (attrs.ngClick || attrs.href === '' || attrs.href === '#') {
-        elem.on('click', function(e){
-          e.preventDefault();
-          if (attrs.ngClick){
-            scope.$eval(attrs.ngClick);
-          }
-        });
-      }
-    }
-  };
+var app = angular.module('twitto-feels', ['ngRoute']);
+
+app.config(function($routeProvider) {
+  $routeProvider.when('/', {
+    templateUrl: '/static/partials/no_topic.html',
+  }).when('/topics/:topicId', {
+    templateUrl: '/static/partials/topic.html',
+    controller: 'TopicCtrl'
+  }).otherwise({
+    redirectTo: '/'
+  });
 });
 
-function TopicsCtrl($scope, $http) {
+app.factory('ApiService', ['$q', '$http', function($q, $http) {
+  function Service(baseURL) {
+    this.baseURL = baseURL;
+  }
+
+  Service.prototype.get = function() {
+    var deferred = $q.defer();
+    $http.get(this.baseURL)
+      .success(function(data) { deferred.resolve(data); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
+  };
+
+  return Service;
+}]);
+
+function makeBasicApiService(name, url) {
+  return app.factory(name, ['ApiService', function(ApiService) {
+    return new ApiService(url);
+  }]);
+}
+
+makeBasicApiService('TopicsService', '/topics');
+makeBasicApiService('TweetsService', '/tweets');
+
+app.controller('MainCtrl', ['$scope', '$http', 'TopicsService', 'TweetsService',
+    function($scope, $http, TopicsService, TweetsService) {
   $scope.topics = [];
+  $scope.tweets = [];
 
-  $http.get('/topics').success(function(topics) {
+  TopicsService.get().then(function(topics) {
     $scope.topics = topics;
-
-    // Broadcast
-    $scope.$broadcast('topicsUpdated', topics);
-  }).error(function() {
+  }, function() {
     console.log('error while loading topics');
   });
 
-  $scope.viewTopic = function(topic) {
-    $scope.currentTopic = topic;
-  }
-}
-
-function TweetsCtrl($scope, $http) {
-  $scope.tweets = [];
-
-  // All (cached) tweets
-  $scope.allTweets = [];
-  $http.get('/tweets').success(function(tweets) {
-    $scope.allTweets = tweets;
-
-    // Broadcast
-    $scope.$broadcast('allTweetsUpdated', tweets);
-  }).error(function() {
+  TweetsService.get().then(function(tweets) {
+    $scope.tweets = tweets;
+  }, function() {
     console.log('error while loading tweets');
   });
+}]);
 
-  $scope.$watch('currentTopic', function() {
-    var topic = $scope.currentTopic;
-    if (!topic || !$scope.allTweets) { return; }
-      $scope.tweets = [];
-    angular.forEach($scope.allTweets, function(tweet) {
-      if (tweet.topic.$oid == topic._id.$oid) {
-        $scope.tweets.push(tweet);
-      }
-    });
+app.controller('TopicCtrl', ['$scope', '$routeParams', function($scope, $routeParams) {
+  angular.forEach($scope.topics, function(topic) {
+    if (topic._id.$oid == $routeParams.topicId) {
+      $scope.topic = topic;
+
+      // Add "tweets" member for topic
+      if (topic.tweets) { return; }
+      topic.tweets = [];
+      angular.forEach($scope.tweets, function(tweet) {
+        if (tweet.topic.$oid == topic._id.$oid) {
+          topic.tweets.push(tweet);
+        }
+      });
+    }
   });
-}
+}]);

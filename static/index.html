@@ -22,7 +22,7 @@
       <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
   </head>
-  <body>
+  <body ng-controller="MainCtrl">
     <!-- Navbar -->
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container-fluid">
@@ -43,49 +43,27 @@
       </div>
     </div>
 
-    <div ng-controller="TopicsCtrl" class="container-fluid">
+    <div class="container-fluid">
       <div class="row">
         <!-- Sidebar -->
         <div class="col-sm-3 col-md-2 sidebar">
           <h4 style="margin-top:0px;">Available topics</h4>
           <ul class="nav nav-sidebar">
-            <li ng-repeat="topic in topics"><a ng-click="viewTopic(topic)">{{ topic.name }}</a></li>
+            <li ng-repeat="topic in topics"><a href="#/topics/{{ topic._id.$oid }}">{{ topic.name }}</a></li>
           </ul>
         </div>
 
         <!-- Main content -->
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-          <div ng-hide="currentTopic">
-            <small>Select a topic from the sidebar</small>
-          </div>
-          <div ng-show="currentTopic">
-            <h1 class="page-header">{{ currentTopic.name }}</h1>
-            <div ng-controller="TweetsCtrl">
-              <table ng-show="tweets" class="table">
-                <tr>
-                  <th>tweet_id</th>
-                  <th>text</th>
-                  <th>user</th>
-                  <th>user_id</th>
-                  <th>user_geo_enabled</th>
-                </tr>
-                <tr ng-repeat="tweet in tweets">
-                  <th>{{ tweet.tweet_id }}</th>
-                  <th>{{ tweet.text }}</th>
-                  <th>{{ tweet.user }}</th>
-                  <th>{{ tweet.user_id }}</th>
-                  <th>{{ tweet.user_geo_enabled }}</th>
-                </tr>
-              </table>
-            </div>
-          </div>
+          <div ng-view></div>
         </div>
       </div>
     </div>
 
     <!-- Bootstrap core JavaScript -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.14/angular.min.js"></script>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/angular.min.js"></script>
+    <script src="/static/js/angular-route.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
     <script src="/static/js/main.js"></script>
   </body>

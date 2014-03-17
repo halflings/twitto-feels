@@ -1,0 +1,17 @@
+<h1 class="page-header">{{ topic.name }}</h1>
+<table ng-show="tweets" class="table">
+  <tr>
+    <th>tweet_id</th>
+    <th>text</th>
+    <th>user</th>
+    <th>user_id</th>
+    <th>user_geo_enabled</th>
+  </tr>
+  <tr ng-repeat="tweet in topic.tweets">
+    <th>{{ tweet.tweet_id }}</th>
+    <th>{{ tweet.text }}</th>
+    <th>{{ tweet.user }}</th>
+    <th>{{ tweet.user_id }}</th>
+    <th>{{ tweet.user_geo_enabled }}</th>
+  </tr>
+</table>
