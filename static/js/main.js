@@ -21,9 +21,40 @@ function TopicsCtrl($scope, $http) {
 
   $http.get('/topics').success(function(topics) {
     $scope.topics = topics;
+
+    // Broadcast
+    $scope.$broadcast('topicsUpdated', topics);
+  }).error(function() {
+    console.log('error while loading topics');
   });
 
   $scope.viewTopic = function(topic) {
     $scope.currentTopic = topic;
   }
+}
+
+function TweetsCtrl($scope, $http) {
+  $scope.tweets = [];
+
+  // All (cached) tweets
+  $scope.allTweets = [];
+  $http.get('/tweets').success(function(tweets) {
+    $scope.allTweets = tweets;
+
+    // Broadcast
+    $scope.$broadcast('allTweetsUpdated', tweets);
+  }).error(function() {
+    console.log('error while loading tweets');
+  });
+
+  $scope.$watch('currentTopic', function() {
+    var topic = $scope.currentTopic;
+    if (!topic || !$scope.allTweets) { return; }
+      $scope.tweets = [];
+    angular.forEach($scope.allTweets, function(tweet) {
+      if (tweet.topic.$oid == topic._id.$oid) {
+        $scope.tweets.push(tweet);
+      }
+    });
+  });
 }
