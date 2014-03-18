@@ -1,6 +1,5 @@
 <h1 class="page-header">
   {{ topic.name }}
-  <small>(currently displaying tweets for this topic)</small>
   <button ng-click="requestDelete()" class="btn btn-lg btn-danger pull-right" type="button">
     <span class="glyphicon glyphicon-remove-circle"></span>
   </button>
@@ -19,7 +18,7 @@
     <th>Geo enabled</th>
   </tr>
   <tr ng-repeat="tweet in topic.tweets">
-    <td>{{ tweet.text }}</td>
+    <td>{{ tweet.status }}</td>
     <td><a href="https://twitter.com/{{ tweet.user }}">{{ tweet.user }}</a></td>
     <td><input type="checkbox" ng-model="tweet.user_geo_enabled" disabled></td>
   </tr>

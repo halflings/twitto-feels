@@ -2,7 +2,7 @@ import sys
 import tweepy
 import json
 
-from models import Tweet, Topic
+from models import Tweet, Topic, ValidationError
 
 class TweetListener(tweepy.StreamListener):
     """
@@ -51,11 +51,19 @@ class TopicStreamer(object):
         Run the streamer with the current handler.
         """
         streamer = tweepy.Stream(auth=self.auth, listener=self.listener)
-        streamer.filter(track=self.topic.tags)
+        streamer.filter(track=self.topic.tags, locations=self.topic.locations)
 
 def collect_for_topic(auth, topic):
     """
     Collect tweets for the given topic, and save them to the database.
     """
-    streamer = TopicStreamer(auth, topic, tweet_handler=lambda t: t.save())
+    def _handler(tweet):
+        if topic.locations and not tweet.location:
+            return
+        try:
+            tweet.save()
+            print 'Saved: https://twitter.com/%s/status/%s' % (tweet.user, tweet.tweet_id)
+        except (ValidationError, OperationalError) as e:
+            print 'Not saved:', e
+    streamer = TopicStreamer(auth, topic, tweet_handler=_handler)
     streamer.run()
