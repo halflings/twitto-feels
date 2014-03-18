@@ -118,10 +118,8 @@ app.factory('FlashService', ['$timeout', function($timeout) {
 
     // Add "dismiss" method for flash messages
     obj.dismiss = function() {
-      console.log('removing', obj, 'from', self.messages);
       for (var i = 0; i < self.messages.length; i++) {
         if (self.messages[i].uid == obj.uid) {
-          console.log('at index', i);
           self.messages.splice(i, 1);
           break;
         }
@@ -266,7 +264,6 @@ app.controller('MapCtrl', function($scope) {
 
   $scope.onMapLoaded = function(map) {
     $scope.mapInstance = map;
-    console.log(map);
 
     $scope.topicZones.push(new google.maps.Circle({
       strokeColor: '#FF0000',

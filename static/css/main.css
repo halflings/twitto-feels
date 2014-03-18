@@ -7,3 +7,27 @@ a { cursor: pointer; }
 .angular-google-map-container {
     height: 400px;
 }
+
+.fade-enter-setup, .fade-leave-setup {
+    -webkit-transition: 1s linear all;
+    -moz-transition: 1s linear all;
+    -ms-transition: 1s linear all;
+    -o-transition: 1s linear all;
+    transition: 1s linear all;
+}
+
+.fade-enter-setup {
+    opacity: 0;
+}
+
+.fade-enter-setup.fade-enter-start {
+    opacity: 1;
+}
+
+.fade-leave-setup {
+    opacity: 1;
+}
+
+.fade-leave-setup.fade-leave-start {
+    opacity: 0;
+}
