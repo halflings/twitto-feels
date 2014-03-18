@@ -1,6 +1,7 @@
 import json
 from flask import request
 from flask.ext.restful import abort, Resource, Api as _Api
+import mongoengine as mongo
 
 class Api(_Api):
     def register_model(self, model):
@@ -31,13 +32,20 @@ def register_api_model(api, cls):
         def put(self, model_pk):
             fields = get_request_json()
             model = self.get_or_abort(model_pk)
-            model.update(**fields)
-            model.save()
-            return self.to_dict(model)
+            try:
+                model.update(**fields)
+                model.save()
+            except mongo.OperationError:
+                abort(403)
+            else:
+                return self.to_dict(model)
 
         def delete(self, model_pk):
             model = self.get_or_abort(model_pk)
-            model.delete()
+            try:
+                model.delete()
+            except mongo.OperationError:
+                abort(403)
 
     class ModelListResource(BaseModelResource):
         def get(self):
@@ -45,9 +53,13 @@ def register_api_model(api, cls):
 
         def post(self):
             fields = get_request_json()
-            model = cls(**fields)
-            model.save()
-            return self.to_dict(model)
+            try:
+                model = cls(**fields)
+                model.save()
+            except mongo.OperationError:
+                abort(403)
+            else:
+                return self.to_dict(model)
 
     # register api resources
     multiple_url = '/%ss' % model_name
