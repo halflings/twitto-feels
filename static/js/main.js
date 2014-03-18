@@ -128,7 +128,8 @@ app.controller('ViewTopicCtrl', ['$scope', '$routeParams', function($scope, $rou
   });
 }]);
 
-app.controller('CreateTopicCtrl', ['$scope', 'TopicsService', function($scope, TopicsService) {
+app.controller('CreateTopicCtrl', ['$scope', '$location', 'TopicsService',
+    function($scope, $location, TopicsService) {
   $scope.name = '';
   $scope.tags = [];
 
@@ -166,6 +167,11 @@ app.controller('CreateTopicCtrl', ['$scope', 'TopicsService', function($scope, T
   };
 
   $scope.$submit = function() {
-    TopicsService.post({ name: $scope.name, tags: $scope.tags });
+    TopicsService.post({ name: $scope.name, tags: $scope.tags }).then(function(topic) {
+      $scope.topics.push(topic);
+      $location.path('/view_topic/' + topic._id.$oid);
+    }, function() {
+      $scope.errors.push('An error occurred while creating the given topic');
+    });
   };
 }]);
