@@ -45,12 +45,8 @@ app.factory('ApiService', ['$q', '$http', function($q, $http) {
 
   Service.prototype.post = function(obj) {
     var deferred = $q.defer();
-    $http({
-      method: 'post',
-      url: this.baseURL,
-      data: JSON.stringify(obj),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    }).success(function(obj) { deferred.resolve(obj); })
+    $http.post(this.baseURL, obj)
+      .success(function(obj) { deferred.resolve(obj); })
       .error(function() { deferred.reject(); })
     ;
     return deferred.promise;

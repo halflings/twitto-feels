@@ -26,9 +26,10 @@ class TopicResource(Resource):
         return mongo_to_dict(mongo_get_or_abort(Topic, topic_id))
 
     def put(self, topic_id):
+        abort_if_request_isnt_json()
         topic = mongo_get_or_abort(Topic, topic_id)
         topic = Topic.objects.get(pk=topic_id)
-        topic.update(**{ x: request.form[x] for x in topic_public_fields })
+        topic.update(**request.json)
         topic.save()
         return mongo_to_dict(topic)
 
@@ -37,12 +38,17 @@ class TopicResource(Resource):
         topic.delete()
 api.add_resource(TopicResource, '/topics/<topic_id>')
 
+def abort_if_request_isnt_json(code=400):
+    if request.headers['Content-Type'] != 'application/json':
+        abort(code)
+
 class TopicsResource(Resource):
     def get(self):
         return mongo_to_dict(Topic.objects)
 
     def post(self):
-        topic = Topic(**{ x: request.form[x] for x in topic_public_fields })
+        abort_if_request_isnt_json()
+        topic = Topic(**request.json)
         topic.save()
         return mongo_to_dict(topic)
 api.add_resource(TopicsResource, '/topics')
