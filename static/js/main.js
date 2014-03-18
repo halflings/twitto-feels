@@ -4,7 +4,7 @@ var app = angular.module('twitto-feels', ['ngRoute', 'ui.bootstrap', 'google-map
 
 app.config(function($routeProvider) {
   $routeProvider.when('/', {
-    templateUrl: '/partials/no_topic.html',
+    templateUrl: '/partials/home.html',
   }).when('/create_topic', {
     templateUrl: '/partials/create_topic.html',
     controller: 'CreateTopicCtrl'
@@ -82,37 +82,82 @@ function makeBasicApiService(name, url) {
 makeBasicApiService('TopicsService', '/topics');
 makeBasicApiService('TweetsService', '/tweets');
 
-app.controller('MainCtrl', ['$scope', '$http', 'TopicsService', 'TweetsService',
-    function($scope, $http, TopicsService, TweetsService) {
-  $scope.topics = [];
-  $scope.tweets = [];
-  $scope.errors = [];
-  $scope.errors.$push = $scope.errors.push;
-  $scope.errors.push = function(obj) {
-    if (this.indexOf(obj) == -1) {
-      this.$push(obj);
+app.factory('FlashService', ['$timeout', function($timeout) {
+  var flash = {};
+
+  // Messages container
+  flash.messages = [];
+
+  // Possible types for flash messages
+  flash.possibleTypes = ['success', 'danger', 'warning', 'info'];
+  // and "none" type
+  flash.noneType = 'none';
+
+  // Timeout for message dismissal, in seconds
+  flash.timeout = 1;
+
+  flash.add = function(msg, type) {
+    var self = this;
+
+    // Default arguments
+    var obj = {};
+    if (type === undefined) {
+      obj = (typeof(msg) == 'string') ? { text: msg } : msg;
+    } else {
+      obj.text = msg;
+      obj.type = type;
+    }
+
+    // Check "type" member
+    if (!obj.type || self.possibleTypes.indexOf(obj.type) == -1) {
+      obj.type = self.noneType;
+    }
+
+    // Add UID
+    obj.uid = ('0000' + (Math.random() * Math.pow(36,4) << 0).toString(36)).substr(-4);
+
+    // Add "dismiss" method for flash messages
+    obj.dismiss = function() {
+      console.log('removing', obj, 'from', self.messages);
+      for (var i = 0; i < self.messages.length; i++) {
+        if (self.messages[i].uid == obj.uid) {
+          console.log('at index', i);
+          self.messages.splice(i, 1);
+          break;
+        }
+      }
+    };
+    self.messages.push(obj);
+
+    // Finally, schedule dismissal
+    if (self.timeout > 0) {
+      $timeout(function() { obj.dismiss(); }, self.timeout * 1000);
     }
   };
+
+  return flash;
+}]);
+
+app.controller('MainCtrl', function($scope, $http, TopicsService, TweetsService, FlashService) {
+  $scope.topics = [];
+  $scope.tweets = [];
+  $scope.flashMessages = FlashService.messages;
 
   TopicsService.get().then(function(topics) {
     $scope.topics = topics;
   }, function() {
-    $scope.errors.push('Topics loading failed');
+    FlashService.add('Topics loading failed', 'danger');
   });
 
   TweetsService.get().then(function(tweets) {
     $scope.tweets = tweets;
   }, function() {
-    $scope.errors.push('Tweets loading failed');
+    FlashService.add('Tweets loading failed', 'danger');
   });
+});
 
-  $scope.dismissError = function(index) {
-    $scope.errors.splice(index, 1);
-  };
-}]);
-
-app.controller('ViewTopicCtrl', ['$scope', '$routeParams', '$location', '$modal', 'TopicsService',
-    function($scope, $routeParams, $location, $modal, TopicsService) {
+app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
+      $modal, TopicsService, FlashService) {
 
   // Find "current" topic
   angular.forEach($scope.topics, function(topic, index) {
@@ -151,61 +196,62 @@ app.controller('ViewTopicCtrl', ['$scope', '$routeParams', '$location', '$modal'
         $scope.topics.splice($scope.topicIndex, 1);
         $location.path('/');
       }, function() {
-        $scope.errors.push('An error occurred while deleting the given topic');
+        FlashService.add('An error occurred while deleting the given topic', 'danger');
       });
     });
   };
-}]);
+});
 
-app.controller('CreateTopicCtrl', ['$scope', '$location', 'TopicsService',
-    function($scope, $location, TopicsService) {
+app.controller('CreateTopicCtrl', function($scope, $location,
+      TopicsService, FlashService) {
   $scope.name = '';
   $scope.tags = [];
 
   $scope.currentTag = '';
   $scope.addTag = function(tag) {
     tag = tag.toLowerCase().replace(/[^\w]/gi, '');
-    if ($scope.tags.indexOf(tag) != -1) {
-      $scope.errors.push('Tag "' + tag + '" already added');
-      return;
+    if (!tag) {
+      FlashService.add('Cannot add empty tag', 'warning');
+    } else if ($scope.tags.indexOf(tag) != -1) {
+      FlashService.add('Tag "' + tag + '" already added', 'warning');
+    } else {
+      $scope.tags.push(tag);
+      $scope.currentTag = '';
     }
-    $scope.tags.push(tag);
-    $scope.currentTag = '';
   };
 
-  $scope.removeTag = function(index) {
-    $scope.tags.splice(index, 1);
-  };
+  $scope.removeTag = function(index) { $scope.tags.splice(index, 1); };
 
+  // Form validation
   $scope.submit = function() {
     var valid = true;
 
     // Validate name
     if (!$scope.name) {
-      $scope.errors.push('No name provided for the topic');
+      FlashService.add('No name provided for the topic', 'danger');
       valid = false;
     }
 
     // Validate tags
     if (!$scope.tags.length) {
-      $scope.errors.push('No tags provided for the topic');
+      FlashService.add('No tags provided for the topic', 'danger');
       valid = false;
     }
 
     if (valid) { $scope.$submit(); }
   };
-
+  // form submission
   $scope.$submit = function() {
     TopicsService.post({ name: $scope.name, tags: $scope.tags }).then(function(topic) {
       $scope.topics.push(topic);
       $location.path('/view_topic/' + topic._id.$oid);
     }, function() {
-      $scope.errors.push('An error occurred while creating the given topic');
+      FlashService.add('An error occurred while creating the given topic', 'danger');
     });
   };
-}]);
+});
 
-app.controller('MapCtrl', ['$scope', function($scope) {
+app.controller('MapCtrl', function($scope) {
   $scope.map = {
     center: { latitude: 45, longitude: -73 },
     zoom: 8,
@@ -233,4 +279,4 @@ app.controller('MapCtrl', ['$scope', function($scope) {
       radius: 142125
     }));
   };
-}]);
+});
