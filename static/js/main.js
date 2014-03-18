@@ -111,9 +111,11 @@ app.controller('MainCtrl', ['$scope', '$http', 'TopicsService', 'TweetsService',
   };
 }]);
 
-app.controller('ViewTopicCtrl', ['$scope', '$routeParams', function($scope, $routeParams) {
-  angular.forEach($scope.topics, function(topic) {
+app.controller('ViewTopicCtrl', ['$scope', '$routeParams', '$location', 'TopicsService',
+    function($scope, $routeParams, $location, TopicsService) {
+  angular.forEach($scope.topics, function(topic, index) {
     if (topic._id.$oid == $routeParams.topicId) {
+      $scope.topicIndex = index;
       $scope.topic = topic;
 
       // Add "tweets" member for topic
@@ -126,6 +128,15 @@ app.controller('ViewTopicCtrl', ['$scope', '$routeParams', function($scope, $rou
       });
     }
   });
+
+  $scope.requestDelete = function() {
+    TopicsService.delete($scope.topic).then(function() {
+      $scope.topics.splice($scope.topicIndex, 1);
+      $location.path('/');
+    }, function() {
+      $scope.errors.push('An error occurred while deleting the given topic');
+    });
+  };
 }]);
 
 app.controller('CreateTopicCtrl', ['$scope', '$location', 'TopicsService',

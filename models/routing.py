@@ -62,7 +62,8 @@ def register_api_model(api, cls):
                 return self.to_dict(model)
 
     # register api resources
-    multiple_url = '/%ss' % model_name
-    single_url = multiple_url + '/<%s_pk>' % model_name
-    api.add_resource(ModelResource, single_url, endpoint=model_name)
-    api.add_resource(ModelListResource, multiple_url, endpoint='%s_list' % model_name)
+    model_base_url = '/%ss' % model_name
+    api.add_resource(ModelResource, model_base_url + '/<model_pk>',
+            endpoint=model_name)
+    api.add_resource(ModelListResource, model_base_url,
+            endpoint='%s_list' % model_name)

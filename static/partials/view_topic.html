@@ -1,6 +1,9 @@
 <h1 class="page-header">
   {{ topic.name }}
   <small>(currently displaying tweets for this topic)</small>
+  <button ng-click="requestDelete()" class="btn btn-lg btn-danger pull-right" type="button">
+    <span class="glyphicon glyphicon-remove-circle"></span>
+  </button>
 </h1>
 <table ng-show="tweets" class="table">
   <tr>
