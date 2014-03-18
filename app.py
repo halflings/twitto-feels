@@ -3,11 +3,11 @@ from flask import Flask, request
 from flask.ext.restful import Resource
 from mongoengine import connect
 from models import Tweet, Topic
-from models.routing import ModelApi
+from models.routing import Api
 import config
 
 app = Flask(__name__, static_url_path='')
-api = ModelApi(app, prefix='/api')
+api = Api(app, prefix='/api')
 
 connect(config.db_name, host=config.db_host, port=config.db_port,
         username=config.db_user, password=config.db_pass)

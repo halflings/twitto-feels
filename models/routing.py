@@ -1,14 +1,15 @@
 import json
 from flask import request
-from flask.ext.restful import abort, Resource, Api
+from flask.ext.restful import abort, Resource, Api as _Api
 
-class ModelApi(Api):
+class Api(_Api):
     def register_model(self, model):
         register_api_model(self, model)
 
-def abort_if_request_isnt_json(code=400):
-    if request.headers['Content-Type'] != 'application/json':
+def get_request_json(code=400):
+    if not request.headers['Content-Type'].startswith('application/json'):
         abort(code)
+    return request.get_json(force=True)
 
 def register_api_model(api, cls):
     model_name = cls.__name__.lower()
@@ -28,9 +29,9 @@ def register_api_model(api, cls):
             return self.to_dict(self.get_or_abort(model_pk))
 
         def put(self, model_pk):
-            abort_if_request_isnt_json()
+            fields = get_request_json()
             model = self.get_or_abort(model_pk)
-            model.update(**request.json)
+            model.update(**fields)
             model.save()
             return self.to_dict(model)
 
@@ -43,8 +44,8 @@ def register_api_model(api, cls):
             return self.to_dict(cls.objects)
 
         def post(self):
-            abort_if_request_isnt_json()
-            model = cls(**request.json)
+            fields = get_request_json()
+            model = cls(**fields)
             model.save()
             return self.to_dict(model)
 
