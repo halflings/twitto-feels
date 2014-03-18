@@ -251,12 +251,14 @@ app.controller('CreateTopicCtrl', function($scope, $location,
 
 app.controller('MapCtrl', function($scope) {
   $scope.map = {
-    center: { latitude: 45, longitude: -73 },
-    zoom: 8,
+    center: { latitude: 33.678176, longitude: -116.242568 },
+    zoom: 11,
     events: {
       tilesloaded: function(map) {
         $scope.$apply(function() { $scope.onMapLoaded(map); });
       }
+    }, options: {
+      mapTypeId: google.maps.MapTypeId.TERRAIN
     }
   };
 
@@ -265,15 +267,14 @@ app.controller('MapCtrl', function($scope) {
   $scope.onMapLoaded = function(map) {
     $scope.mapInstance = map;
 
-    $scope.topicZones.push(new google.maps.Circle({
-      strokeColor: '#FF0000',
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-      fillColor: '#FF0000',
-      fillOpacity: 0.35,
+    $scope.topicZones.push(new google.maps.Rectangle({
       map: map,
-      center: new google.maps.LatLng(45, -73),
-      radius: 142125
+      strokeColor: '#ff0000', strokeOpacity: 0.8, strokeWeight: 2,
+      fillColor: '#ff0000', fillOpacity: 0.35,
+      bounds: new google.maps.LatLngBounds(
+        new google.maps.LatLng(33.671068, -116.25128),
+        new google.maps.LatLng(33.685282, -116.233942)),
+      editable: true
     }));
   };
 });
