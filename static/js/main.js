@@ -1,6 +1,6 @@
 "use strict";
 
-var app = angular.module('twitto-feels', ['ngRoute']);
+var app = angular.module('twitto-feels', ['ngRoute', 'ui.bootstrap', 'google-maps']);
 
 app.config(function($routeProvider) {
   $routeProvider.when('/', {
@@ -111,8 +111,10 @@ app.controller('MainCtrl', ['$scope', '$http', 'TopicsService', 'TweetsService',
   };
 }]);
 
-app.controller('ViewTopicCtrl', ['$scope', '$routeParams', '$location', 'TopicsService',
-    function($scope, $routeParams, $location, TopicsService) {
+app.controller('ViewTopicCtrl', ['$scope', '$routeParams', '$location', '$modal', 'TopicsService',
+    function($scope, $routeParams, $location, $modal, TopicsService) {
+
+  // Find "current" topic
   angular.forEach($scope.topics, function(topic, index) {
     if (topic._id.$oid == $routeParams.topicId) {
       $scope.topicIndex = index;
@@ -130,11 +132,27 @@ app.controller('ViewTopicCtrl', ['$scope', '$routeParams', '$location', 'TopicsS
   });
 
   $scope.requestDelete = function() {
-    TopicsService.delete($scope.topic).then(function() {
-      $scope.topics.splice($scope.topicIndex, 1);
-      $location.path('/');
-    }, function() {
-      $scope.errors.push('An error occurred while deleting the given topic');
+    var modalInstance = $modal.open({
+      templateUrl: 'confirm_topic_deletion.html',
+      controller: function($scope, $modalInstance) {
+        $scope.confirm = function () {
+          $modalInstance.close(true);
+        };
+
+        $scope.cancel = function () {
+          $modalInstance.dismiss('cancel');
+        };
+      }
+    });
+
+    modalInstance.result.then(function(confirmed) {
+      if (!confirmed) { return; }
+      TopicsService.delete($scope.topic).then(function() {
+        $scope.topics.splice($scope.topicIndex, 1);
+        $location.path('/');
+      }, function() {
+        $scope.errors.push('An error occurred while deleting the given topic');
+      });
     });
   };
 }]);
@@ -184,5 +202,35 @@ app.controller('CreateTopicCtrl', ['$scope', '$location', 'TopicsService',
     }, function() {
       $scope.errors.push('An error occurred while creating the given topic');
     });
+  };
+}]);
+
+app.controller('MapCtrl', ['$scope', function($scope) {
+  $scope.map = {
+    center: { latitude: 45, longitude: -73 },
+    zoom: 8,
+    events: {
+      tilesloaded: function(map) {
+        $scope.$apply(function() { $scope.onMapLoaded(map); });
+      }
+    }
+  };
+
+  $scope.topicZones = [];
+
+  $scope.onMapLoaded = function(map) {
+    $scope.mapInstance = map;
+    console.log(map);
+
+    $scope.topicZones.push(new google.maps.Circle({
+      strokeColor: '#FF0000',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: '#FF0000',
+      fillOpacity: 0.35,
+      map: map,
+      center: new google.maps.LatLng(45, -73),
+      radius: 142125
+    }));
   };
 }]);

@@ -5,6 +5,13 @@
     <span class="glyphicon glyphicon-remove-circle"></span>
   </button>
 </h1>
+
+<h2>Map</h2>
+<div ng-controller="MapCtrl">
+  <google-map center="map.center" zoom="map.zoom" events="map.events" draggable="true"></google-map>
+</div>
+
+<h2>Tweets</h2>
 <table ng-show="tweets" class="table">
   <tr>
     <th>Text</th>
@@ -17,3 +24,16 @@
     <td><input type="checkbox" ng-model="tweet.user_geo_enabled" disabled></td>
   </tr>
 </table>
+
+<script type="text/ng-template" id="confirm_topic_deletion.html">
+  <div class="modal-header">
+    <h3>Confirm topic deletion</h3>
+  </div>
+  <div class="modal-body">
+  Do you <em>really</em> want to delete this topic ? This action cannot be undone.
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-danger" ng-click="confirm()">Yes, I'm sure</button>
+    <button class="btn btn-default" ng-click="cancel()">Cancel</button>
+  </div>
+</script>
