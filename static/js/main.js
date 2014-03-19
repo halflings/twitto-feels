@@ -203,6 +203,8 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
 app.controller('CreateTopicCtrl', function($scope, $location,
       TopicsService, FlashService) {
   $scope.name = '';
+
+  // Tags
   $scope.tags = [];
 
   $scope.currentTag = '';
@@ -217,8 +219,70 @@ app.controller('CreateTopicCtrl', function($scope, $location,
       $scope.currentTag = '';
     }
   };
+  $scope.removeTag = function(index) {
+    $scope.tags.splice(index, 1);
+  };
 
-  $scope.removeTag = function(index) { $scope.tags.splice(index, 1); };
+  // Locations
+  $scope.map = {
+    center: { latitude: 33.678176, longitude: -116.242568 },
+    zoom: 11,
+    events: {
+      tilesloaded: function(map) {
+        //$scope.$apply(function() {});
+        $scope.map.instance = map;
+      }
+    }, options: {
+      mapTypeId: google.maps.MapTypeId.TERRAIN
+    }
+  };
+
+  $scope.locations = [];
+
+  $scope.addLocation = function() {
+    console.log('ok');
+    if (!$scope.map.instance) {
+      FlashService.add('Please wait for map to load !', 'warning');
+    }
+    var rectangle = new google.maps.Rectangle({
+      map: $scope.map.instance,
+      strokeColor: '#ff0000', strokeOpacity: 0.8, strokeWeight: 2,
+      fillColor: '#ff0000', fillOpacity: 0.35,
+      bounds: new google.maps.LatLngBounds(
+        new google.maps.LatLng(33.671068, -116.25128),
+        new google.maps.LatLng(33.685282, -116.233942)),
+      editable: true,
+      draggable: true
+    });
+
+    var loc = {
+      rectangle: rectangle,
+      sw: {
+        lat: rectangle.bounds.getSouthWest().lat(),
+        lng: rectangle.bounds.getSouthWest().lng()
+      }, ne: {
+        lat: rectangle.bounds.getNorthEast().lat(),
+        lng: rectangle.bounds.getNorthEast().lng()
+      }
+    };
+
+    google.maps.event.addListener(rectangle, 'bounds_changed', function() {
+      $scope.$apply(function() {
+        loc.sw.lat = rectangle.bounds.getSouthWest().lat();
+        loc.sw.lng = rectangle.bounds.getSouthWest().lng();
+        loc.ne.lat = rectangle.bounds.getNorthEast().lat();
+        loc.ne.lng = rectangle.bounds.getNorthEast().lng();
+      });
+    });
+
+    $scope.locations.push(loc);
+  };
+
+  $scope.removeLocation = function(index) {
+    var rectangle = $scope.location[index].rectangle;
+    rectangle.setMap(null);
+    $scope.location.splice(index, 1);
+  };
 
   // Form validation
   $scope.submit = function() {
@@ -246,35 +310,5 @@ app.controller('CreateTopicCtrl', function($scope, $location,
     }, function() {
       FlashService.add('An error occurred while creating the given topic', 'danger');
     });
-  };
-});
-
-app.controller('MapCtrl', function($scope) {
-  $scope.map = {
-    center: { latitude: 33.678176, longitude: -116.242568 },
-    zoom: 11,
-    events: {
-      tilesloaded: function(map) {
-        $scope.$apply(function() { $scope.onMapLoaded(map); });
-      }
-    }, options: {
-      mapTypeId: google.maps.MapTypeId.TERRAIN
-    }
-  };
-
-  $scope.topicZones = [];
-
-  $scope.onMapLoaded = function(map) {
-    $scope.mapInstance = map;
-
-    $scope.topicZones.push(new google.maps.Rectangle({
-      map: map,
-      strokeColor: '#ff0000', strokeOpacity: 0.8, strokeWeight: 2,
-      fillColor: '#ff0000', fillOpacity: 0.35,
-      bounds: new google.maps.LatLngBounds(
-        new google.maps.LatLng(33.671068, -116.25128),
-        new google.maps.LatLng(33.685282, -116.233942)),
-      editable: true
-    }));
   };
 });

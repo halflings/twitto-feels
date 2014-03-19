@@ -5,6 +5,42 @@
     <input id="name" ng-model="name" type="text" class="form-control" placeholder="Code, Pizzas, etc...">
   </div>
 
+  <div class="form">
+    <label for="locations">Locations</label>
+    <div class="row">
+      <div class="col-md-8">
+        <google-map id=locations" center="map.center" zoom="map.zoom"
+          events="map.events" options="map.options"
+          draggable="true"></google-map>
+      </div>
+      <div class="col-md-4">
+        <button ng-click="addLocation()" class="btn btn-block btn-default" type="button">Add location</button>
+        <table ng-show="locations.length" class="table">
+          <thead>
+            <tr>
+              <th colspan="2">South-west</th>
+              <th colspan="2">North-east</th>
+            </tr>
+            <tr>
+              <th>Latitude</th>
+              <th>Longitude</th>
+              <th>Latitude</th>
+              <th>Longitude</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="loc in locations">
+              <td>{{ loc.sw.lat|number:2 }}</td>
+              <td>{{ loc.sw.lng|number:2 }}</td>
+              <td>{{ loc.ne.lat|number:2 }}</td>
+              <td>{{ loc.ne.lng|number:2 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div class="form-group">
     <label for="tags">Tags</label>
     <p ng-hide="tags.length">
@@ -27,5 +63,5 @@
     <p><em>Any non-alphanumeric characters will be removed from tags</em></p>
   </div>
 
-  <button type="submit" class="btn btn-success">Submit</button>
+  <button type="submit" class="btn btn-success">Create</button>
 </form>
