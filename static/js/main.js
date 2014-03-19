@@ -178,6 +178,27 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     }
   });
 
+  $scope.map = {
+    center: { latitude: 33.678176, longitude: -116.242568 },
+    zoom: 11,
+    events: {
+      tilesloaded: function(map) {
+        $scope.map.instance = map;
+      }
+    }, options: {
+      //mapTypeId: google.maps.MapTypeId.TERRAIN
+    }, markers: (function() {
+      var data = [];
+      angular.forEach($scope.topic.tweets, function(tweet) {
+        data.push({
+          longitude: tweet.location[1],
+          latitude: tweet.location[0]
+        });
+      });
+      return data;
+    })()
+  };
+
   $scope.requestDelete = function() {
     var modalInstance = $modal.open({
       templateUrl: 'confirm_topic_deletion.html',
@@ -194,12 +215,16 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
 
     modalInstance.result.then(function(confirmed) {
       if (!confirmed) { return; }
-      TopicsService.delete($scope.topic).then(function() {
-        $scope.topics.splice($scope.topicIndex, 1);
-        $location.path('/');
-      }, function() {
-        FlashService.add('An error occurred while deleting the given topic', 'danger');
-      });
+      $scope.delete();
+    });
+  };
+
+  $scope.delete = function() {
+    TopicsService.delete($scope.topic).then(function() {
+      $scope.topics.splice($scope.topicIndex, 1);
+      $location.path('/');
+    }, function() {
+      FlashService.add('An error occurred while deleting the given topic', 'danger');
     });
   };
 });
@@ -233,7 +258,6 @@ app.controller('CreateTopicCtrl', function($scope, $location,
     zoom: 11,
     events: {
       tilesloaded: function(map) {
-        //$scope.$apply(function() {});
         $scope.map.instance = map;
       }
     }, options: {
