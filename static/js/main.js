@@ -247,10 +247,11 @@ app.controller('CreateTopicCtrl', function($scope, $location,
     if (!$scope.map.instance) {
       FlashService.add('Please wait for map to load !', 'warning');
     }
+
     var rectangle = new google.maps.Rectangle({
       map: $scope.map.instance,
-      strokeColor: '#ff0000', strokeOpacity: 0.8, strokeWeight: 2,
-      fillColor: '#ff0000', fillOpacity: 0.35,
+      strokeColor: '#428bca', strokeOpacity: 0.8, strokeWeight: 2,
+      fillColor: '#428bca', fillOpacity: 0.35,
       bounds: new google.maps.LatLngBounds(
         new google.maps.LatLng(33.671068, -116.25128),
         new google.maps.LatLng(33.685282, -116.233942)),
