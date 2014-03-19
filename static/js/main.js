@@ -252,9 +252,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
       map: $scope.map.instance,
       strokeColor: '#428bca', strokeOpacity: 0.8, strokeWeight: 2,
       fillColor: '#428bca', fillOpacity: 0.35,
-      bounds: new google.maps.LatLngBounds(
-        new google.maps.LatLng(33.671068, -116.25128),
-        new google.maps.LatLng(33.685282, -116.233942)),
+      bounds: $scope.map.instance.getBounds(),
       editable: true,
       draggable: true
     });
@@ -329,7 +327,18 @@ app.controller('CreateTopicCtrl', function($scope, $location,
   };
   // form submission
   $scope.$submit = function() {
-    TopicsService.post({ name: $scope.name, tags: $scope.tags }).then(function(topic) {
+    TopicsService.post({
+      name: $scope.name,
+      tags: $scope.tags,
+      locations: (function() {
+        var locations = [];
+        angular.forEach($scope.locations, function(loc) {
+          locations.push(loc.sw.lat, loc.sw.lng, loc.ne.lat, loc.ne.lng);
+        });
+        console.log(locations);
+        return locations;
+      })()
+    }).then(function(topic) {
       $scope.topics.push(topic);
       $location.path('/view_topic/' + topic._id.$oid);
     }, function() {
