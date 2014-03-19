@@ -278,10 +278,20 @@ app.controller('CreateTopicCtrl', function($scope, $location,
     $scope.locations.push(loc);
   };
 
+  $scope.selectedLocation = -1;
+  $scope.selectLocation = function(index) {
+    $scope.selectedLocation = index;
+  };
+  $scope.removeSelectedLocation = function() {
+    if ($scope.selectedLocation == -1) { return; }
+    $scope.removeLocation($scope.selectedLocation);
+    $scope.selectedLocation = -1;
+  };
+
   $scope.removeLocation = function(index) {
-    var rectangle = $scope.location[index].rectangle;
+    var rectangle = $scope.locations[index].rectangle;
     rectangle.setMap(null);
-    $scope.location.splice(index, 1);
+    $scope.locations.splice(index, 1);
   };
 
   // Form validation
