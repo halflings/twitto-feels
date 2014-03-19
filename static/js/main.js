@@ -333,7 +333,12 @@ app.controller('CreateTopicCtrl', function($scope, $location,
       locations: (function() {
         var locations = [];
         angular.forEach($scope.locations, function(loc) {
-          locations.push(loc.sw.lat, loc.sw.lng, loc.ne.lat, loc.ne.lng);
+          locations.push(
+            loc.sw.lng,
+            loc.sw.lat,
+            loc.ne.lng,
+            loc.ne.lat
+          );
         });
         console.log(locations);
         return locations;
