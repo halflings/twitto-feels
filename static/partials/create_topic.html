@@ -16,7 +16,8 @@
       <div class="col-md-4">
         <div class="btn-group">
           <button type="button" ng-click="addLocation()" class="btn btn-default">Add</button>
-          <button type="button" ng-click="removeSelectedLocation()" class="btn btn-default" ng-disabled="selectedLocation == -1">Delete selected</button>
+          <button type="button" ng-click="removeSelectedLocation()"
+            class="btn btn-default" ng-disabled="!selectedLocation">Delete selected</button>
         </div>
         <table ng-show="locations.length" class="table">
           <thead>
@@ -32,7 +33,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="loc in locations" ng-click="selectLocation($index)" ng-class="{ active: selectedLocation == $index }">
+            <tr ng-repeat="loc in locations" ng-click="selectLocation(loc)" ng-class="{ active: selectedLocation.uid == loc.uid }">
               <td>{{ loc.sw.lat|number:2 }}</td>
               <td>{{ loc.sw.lng|number:2 }}</td>
               <td>{{ loc.ne.lat|number:2 }}</td>

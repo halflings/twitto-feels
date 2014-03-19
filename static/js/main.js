@@ -1,5 +1,9 @@
 "use strict";
 
+function shortUID() {
+  return ('0000' + (Math.random() * Math.pow(36,4) << 0).toString(36)).substr(-4);
+}
+
 var app = angular.module('twitto-feels', ['ngRoute', 'ui.bootstrap', 'google-maps']);
 
 app.config(function($routeProvider) {
@@ -114,7 +118,7 @@ app.factory('FlashService', ['$timeout', function($timeout) {
     }
 
     // Add UID
-    obj.uid = ('0000' + (Math.random() * Math.pow(36,4) << 0).toString(36)).substr(-4);
+    obj.uid = shortUID();
 
     // Add "dismiss" method for flash messages
     obj.dismiss = function() {
@@ -240,7 +244,6 @@ app.controller('CreateTopicCtrl', function($scope, $location,
   $scope.locations = [];
 
   $scope.addLocation = function() {
-    console.log('ok');
     if (!$scope.map.instance) {
       FlashService.add('Please wait for map to load !', 'warning');
     }
@@ -256,6 +259,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
     });
 
     var loc = {
+      uid: shortUID(),
       rectangle: rectangle,
       sw: {
         lat: rectangle.bounds.getSouthWest().lat(),
@@ -275,23 +279,33 @@ app.controller('CreateTopicCtrl', function($scope, $location,
       });
     });
 
+    google.maps.event.addListener(rectangle, 'click', function() {
+      $scope.$apply(function() {
+        $scope.selectLocation(loc);
+      });
+    });
+
     $scope.locations.push(loc);
   };
 
-  $scope.selectedLocation = -1;
-  $scope.selectLocation = function(index) {
-    $scope.selectedLocation = index;
+  $scope.selectedLocation = null;
+  $scope.selectLocation = function(loc) {
+    $scope.selectedLocation = loc;
   };
   $scope.removeSelectedLocation = function() {
-    if ($scope.selectedLocation == -1) { return; }
+    if (!$scope.selectedLocation) { return; }
     $scope.removeLocation($scope.selectedLocation);
-    $scope.selectedLocation = -1;
+    $scope.selectedLocation = null;
   };
 
-  $scope.removeLocation = function(index) {
-    var rectangle = $scope.locations[index].rectangle;
-    rectangle.setMap(null);
-    $scope.locations.splice(index, 1);
+  $scope.removeLocation = function(loc) {
+    for (var i = 0; i < $scope.locations.length; i++) {
+      if ($scope.locations[i].uid == loc.uid) {
+        loc.rectangle.setMap(null);
+        $scope.locations.splice(i,  1);
+        break;
+      }
+    }
   };
 
   // Form validation
