@@ -102,13 +102,34 @@ app.factory('$tweets', function(MongoApiService, $q, $http) {
   return service;
 });
 
-app.factory('CollectorService', function($q, $http) {
-  var service = {};
+app.factory('$collectors', function($q, $http) {
+  var service = { baseURL: '/api/collectors' };
 
-  service.getRunning = function() {
+  service.get = function() {
+    var deferred = $q.defer();
+    $http.get(this.baseURL)
+      .success(function(obj) { deferred.resolve(obj); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
   };
 
-  service.isRunning = function() {
+  service.post = function(topic) {
+    var deferred = $q.defer();
+    $http.post(this.baseURL, { topic_id: topic._id.$oid })
+      .success(function(obj) { deferred.resolve(obj); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
+  };
+
+  service.delete = function(topic) {
+    var deferred = $q.defer();
+    $http.delete(this.baseURL + '/' + topic._id.$oid)
+      .success(function() { deferred.resolve(); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
   };
 
   return service;
@@ -141,7 +162,10 @@ app.factory('$flash', function($timeout) {
     }
 
     // Check "type" member
-    if (!obj.type || self.possibleTypes.indexOf(obj.type) == -1) {
+    if (!obj.type) {
+      obj.type = self.noneType;
+    } else if (self.possibleTypes.indexOf(obj.type) == -1) {
+      console.error('Undefined flash message type:', obj.type);
       obj.type = self.noneType;
     }
 
@@ -185,8 +209,8 @@ app.controller('MainCtrl', function($scope, $http, $topics, $flash) {
 app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topics, $tweets, $flash) {
 
   $scope.map = {
-    center: { latitude: 33.678176, longitude: -116.242568 },
-    zoom: 11,
+    center: { latitude: 0, longitude: 0 },
+    zoom: 2,
     events: {
       tilesloaded: function(map) {
         $scope.map.instance = map;
@@ -239,7 +263,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topic
       markers.splice(0, markers.length - maxValues);
     }
 
-    $scope.map.markers = markers;
+    //$scope.map.markers = markers;
   });
 
   $scope.delete = function() {
@@ -252,7 +276,54 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topic
   };
 });
 
-app.controller('TopicControlsCtrl', function($scope, $modal) {
+app.controller('TopicControlsCtrl', function($scope, $modal, $collectors, $flash) {
+
+  // Collectors reloading
+  $scope.reloadCollectors = function() {
+    $collectors.get().then(function(collectors) {
+      $scope.collectors = collectors;
+    }, function() {
+      $flash.add('Collectors loading failed', 'danger');
+    });
+  };
+  $scope.reloadCollectors();
+
+  // Collector state (running/paused)
+  $scope.collecting = false;
+  $scope.$watch('collectors', function() {
+    if (!$scope.topic) {
+      $scope.collecting = false;
+    } else {
+      $scope.collecting = $scope.collectors.indexOf($scope.topic._id.$oid) != -1;
+    }
+  });
+
+  // Toggle collector state
+  $scope.toggleCollecting = function() {
+    if (!$scope.topic) {
+      $flash.add('Please wait for current topic to be completely loaded', 'danger');
+      return;
+    }
+
+    // Toggle !
+    var promise;
+    if ($scope.collecting) {
+      promise = $collectors.delete($scope.topic);
+    } else {
+      promise = $collectors.post($scope.topic);
+    }
+
+    var savedState = $scope.collecting;
+    promise.then(function() {
+      // do nothing (maybe confirm ?)
+    }, function() {
+      $scope.collecting = savedState;
+    });
+    // apply immediately
+    $scope.collecting = !$scope.collecting;
+  };
+
+  // Delete current topic
   $scope.requestDelete = function() {
     var modalInstance = $modal.open({
       templateUrl: 'confirm_topic_deletion.html',
@@ -274,6 +345,7 @@ app.controller('TopicControlsCtrl', function($scope, $modal) {
   };
 });
 
+// TODO big refactor needed, this controller is *way* too big
 app.controller('CreateTopicCtrl', function($scope, $location,
       $topics, $flash) {
   $scope.name = '';
@@ -299,8 +371,8 @@ app.controller('CreateTopicCtrl', function($scope, $location,
 
   // Locations
   $scope.map = {
-    center: { latitude: 33.678176, longitude: -116.242568 },
-    zoom: 11,
+    center: { latitude: 0, longitude: 0 },
+    zoom: 1,
     events: {
       tilesloaded: function(map) {
         $scope.map.instance = map;

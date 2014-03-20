@@ -40,11 +40,11 @@ class CollectorListResource(Resource):
 
     def post(self):
         data = get_request_json()
-        if 'id' not in data:
+        if 'topic_id' not in data:
             abort(400)
-        if data['id'] in collectors:
+        if data['topic_id'] in collectors:
             abort(403)
-        topic_pk = data['id']
+        topic_pk = data['topic_id']
         try:
             topic = Topic.objects.get(pk=topic_pk)
         except (ValidationError, Topic.DoesNotExist):
