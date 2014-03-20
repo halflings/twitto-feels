@@ -204,7 +204,6 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topic
     }
 
     return $tweets.forTopic($scope.topic).then(function(tweets) {
-      console.log(tweets);
       $scope.tweets = tweets;
     }, function() {
       $flash.add('Tweets loading failed', 'danger');
