@@ -28,7 +28,7 @@
     <th>User</th>
     <th>Geo enabled</th>
   </tr>
-  <tr ng-repeat="tweet in topic.tweets">
+  <tr ng-repeat="tweet in tweets">
     <td>{{ tweet.status }}</td>
     <td><a href="https://twitter.com/{{ tweet.user }}">{{ tweet.user }}</a></td>
     <td><input type="checkbox" ng-model="tweet.user_geo_enabled" disabled></td>

@@ -77,14 +77,30 @@ app.factory('MongoApiService', function($q, $http) {
   return Service;
 });
 
-function makeMongoApiService(name, url) {
-  return app.factory(name, function(MongoApiService) {
-    return new MongoApiService(url);
-  });
-}
+app.factory('$topics', function(MongoApiService, $tweets) {
+  var service = new MongoApiService('/topics');
 
-makeMongoApiService('$topics', '/topics');
-makeMongoApiService('$tweets', '/tweets');
+  service.tweets = function(topic) {
+    return $tweets.forTopic(topic);
+  };
+
+  return service;
+});
+
+app.factory('$tweets', function(MongoApiService, $q, $http) {
+  var service = new MongoApiService('/tweets');
+
+  service.forTopic = function(topic) {
+    var deferred = $q.defer();
+    $http.post(this.baseURL + '/query', { topic: topic._id.$oid })
+      .success(function(obj) { deferred.resolve(obj); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
+  };
+
+  return service;
+});
 
 app.factory('CollectorService', function($q, $http) {
   var service = {};
@@ -98,7 +114,7 @@ app.factory('CollectorService', function($q, $http) {
   return service;
 });
 
-app.factory('FlashService', function($timeout) {
+app.factory('$flash', function($timeout) {
   var flash = {};
 
   // Messages container
@@ -110,7 +126,7 @@ app.factory('FlashService', function($timeout) {
   flash.noneType = 'none';
 
   // Timeout for message dismissal, in seconds
-  flash.timeout = 1;
+  flash.timeout = 0;
 
   flash.add = function(msg, type) {
     var self = this;
@@ -152,59 +168,21 @@ app.factory('FlashService', function($timeout) {
   return flash;
 });
 
-app.controller('MainCtrl', function($scope, $http, $topics, $tweets, FlashService) {
+app.controller('MainCtrl', function($scope, $http, $topics, $flash) {
   $scope.topics = [];
-  $scope.tweets = [];
-  $scope.flashMessages = FlashService.messages;
+  $scope.flashMessages = $flash.messages;
 
-  $topics.get().then(function(topics) {
-    $scope.topics = topics;
-  }, function() {
-    FlashService.add('Topics loading failed', 'danger');
-  });
-
-  $tweets.get().then(function(tweets) {
-    $scope.tweets = tweets;
-  }, function() {
-    FlashService.add('Tweets loading failed', 'danger');
-  });
+  $scope.reloadTopics = function() {
+    $topics.get().then(function(topics) {
+      $scope.topics = topics;
+    }, function() {
+      $flash.add('Topics loading failed', 'danger');
+    });
+  };
+  $scope.reloadTopics();
 });
 
-app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
-      $topics, FlashService) {
-
-  // Find "current" topic
-  angular.forEach($scope.topics, function(topic, index) {
-    if (topic._id.$oid == $routeParams.topicId) {
-      $scope.topicIndex = index;
-      $scope.topic = topic;
-
-      // Add "tweets" member for topic
-      if (topic.tweets) { return; }
-      topic.tweets = [];
-      angular.forEach($scope.tweets, function(tweet) {
-        if (tweet.topic.$oid == topic._id.$oid) {
-          topic.tweets.push(tweet);
-        }
-      });
-    }
-  });
-
-  function buildMarkers() {
-    var data = [];
-    angular.forEach($scope.topic.tweets, function(tweet) {
-      data.push({ longitude: tweet.location[1], latitude: tweet.location[0] });
-    });
-
-    // Hack to fix buggy display of over 100 values
-    // (https://github.com/nlaplante/angular-google-maps/issues/16#issuecomment-38174956)
-    var maxValues = 100;
-    if (data.length > maxValues) {
-      data = _.shuffle(data)
-      data.splice(0, data.length - maxValues);
-    }
-    return data;
-  }
+app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topics, $tweets, $flash) {
 
   $scope.map = {
     center: { latitude: 33.678176, longitude: -116.242568 },
@@ -213,17 +191,64 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
       tilesloaded: function(map) {
         $scope.map.instance = map;
       }
-    }, options: {
-      // extra options for map
-    }, markers: buildMarkers()
+    }
   };
+
+  $scope.tweets = [];
+
+  // Load tweets for current topic
+  $scope.reloadTweets = function() {
+    if (!$scope.topic) {
+      console.error('Current topic is undefined');
+      return;
+    }
+
+    return $tweets.forTopic($scope.topic).then(function(tweets) {
+      console.log(tweets);
+      $scope.tweets = tweets;
+    }, function() {
+      $flash.add('Tweets loading failed', 'danger');
+    });
+  };
+
+  // Load current topic
+  $scope.reloadCurrentTopic = function() {
+    return $topics.get($routeParams.topicId).then(function(topic) {
+      $scope.topic = topic;
+    }, function() {
+      $flash.add('Current topic loading failed', 'danger');
+    });
+  };
+
+  // Load everything
+  $scope.reloadCurrentTopic().then(function() {
+    $scope.reloadTweets();
+  });
+
+  // Markers for map
+  $scope.$watch('tweets', function() {
+    var markers = [];
+    angular.forEach($scope.tweets, function(tweet) {
+      markers.push({ longitude: tweet.location[1], latitude: tweet.location[0] });
+    });
+
+    // Hack to fix buggy display of over 100 values
+    // (https://github.com/nlaplante/angular-google-maps/issues/16#issuecomment-38174956)
+    var maxValues = 100;
+    if (markers.length > maxValues) {
+      markers = _.shuffle(markers);
+      markers.splice(0, markers.length - maxValues);
+    }
+
+    $scope.map.markers = markers;
+  });
 
   $scope.delete = function() {
     $topics.delete($scope.topic).then(function() {
-      $scope.topics.splice($scope.topicIndex, 1);
+      $scope.reloadTopics();
       $location.path('/');
     }, function() {
-      FlashService.add('An error occurred while deleting the given topic', 'danger');
+      $flash.add('An error occurred while deleting the given topic', 'danger');
     });
   };
 });
@@ -251,7 +276,7 @@ app.controller('TopicControlsCtrl', function($scope, $modal) {
 });
 
 app.controller('CreateTopicCtrl', function($scope, $location,
-      $topics, FlashService) {
+      $topics, $flash) {
   $scope.name = '';
 
   // Tags
@@ -261,9 +286,9 @@ app.controller('CreateTopicCtrl', function($scope, $location,
   $scope.addTag = function(tag) {
     tag = tag.toLowerCase().replace(/[^\w]/gi, '');
     if (!tag) {
-      FlashService.add('Cannot add empty tag', 'warning');
+      $flash.add('Cannot add empty tag', 'warning');
     } else if ($scope.tags.indexOf(tag) != -1) {
-      FlashService.add('Tag "' + tag + '" already added', 'warning');
+      $flash.add('Tag "' + tag + '" already added', 'warning');
     } else {
       $scope.tags.push(tag);
       $scope.currentTag = '';
@@ -281,8 +306,6 @@ app.controller('CreateTopicCtrl', function($scope, $location,
       tilesloaded: function(map) {
         $scope.map.instance = map;
       }
-    }, options: {
-      // extra options for map
     }
   };
 
@@ -290,7 +313,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
 
   $scope.addLocation = function() {
     if (!$scope.map.instance) {
-      FlashService.add('Please wait for map to load !', 'warning');
+      $flash.add('Please wait for map to load !', 'warning');
     }
 
     var rectangle = new google.maps.Rectangle({
@@ -358,13 +381,13 @@ app.controller('CreateTopicCtrl', function($scope, $location,
 
     // Validate name
     if (!$scope.name) {
-      FlashService.add('No name provided for the topic', 'danger');
+      $flash.add('No name provided for the topic', 'danger');
       valid = false;
     }
 
     // Validate tags
     if (!$scope.tags.length) {
-      FlashService.add('No tags provided for the topic', 'danger');
+      $flash.add('No tags provided for the topic', 'danger');
       valid = false;
     }
 
@@ -391,7 +414,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
       $scope.topics.push(topic);
       $location.path('/view_topic/' + topic._id.$oid);
     }, function() {
-      FlashService.add('An error occurred while creating the given topic', 'danger');
+      $flash.add('An error occurred while creating the given topic', 'danger');
     });
   };
 });
