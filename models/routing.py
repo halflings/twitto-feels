@@ -3,14 +3,14 @@ from flask.ext.restful import abort, Resource
 from mongoengine import OperationError
 from helpers import get_request_json
 
+class ModelResource(Resource):
+    def to_dict(self, model):
+        return json.loads(model.to_json())
+
 def register_api_model(api, cls):
     model_name = cls.__name__.lower()
 
-    class BaseModelResource(Resource):
-        def to_dict(self, model):
-            return json.loads(model.to_json())
-
-    class ModelResource(BaseModelResource):
+    class SingleModelResource(ModelResource):
         def get_or_abort(self, pk, *args, **kwargs):
             try:
                 return cls.objects.get(pk=pk, *args, **kwargs)
@@ -38,7 +38,7 @@ def register_api_model(api, cls):
             except OperationError:
                 abort(403)
 
-    class ModelListResource(BaseModelResource):
+    class ModelListResource(ModelResource):
         def get(self):
             return self.to_dict(cls.objects)
 
@@ -54,7 +54,7 @@ def register_api_model(api, cls):
 
     # register api resources
     model_base_url = '/%ss' % model_name
-    api.add_resource(ModelResource, model_base_url + '/<model_pk>',
+    api.add_resource(SingleModelResource, model_base_url + '/<model_pk>',
             endpoint=model_name)
     api.add_resource(ModelListResource, model_base_url,
             endpoint='%s_list' % model_name)
