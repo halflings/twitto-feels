@@ -1,16 +1,7 @@
 import json
-from flask import request
-from flask.ext.restful import abort, Resource, Api as _Api
-import mongoengine as mongo
-
-class Api(_Api):
-    def register_model(self, model):
-        register_api_model(self, model)
-
-def get_request_json(code=400):
-    if not request.headers['Content-Type'].startswith('application/json'):
-        abort(code)
-    return request.get_json(force=True)
+from flask.ext.restful import abort, Resource
+from mongoengine import OperationError
+from helpers import get_request_json
 
 def register_api_model(api, cls):
     model_name = cls.__name__.lower()
@@ -35,7 +26,7 @@ def register_api_model(api, cls):
             try:
                 model.update(**fields)
                 model.save()
-            except mongo.OperationError:
+            except OperationError:
                 abort(403)
             else:
                 return self.to_dict(model)
@@ -44,7 +35,7 @@ def register_api_model(api, cls):
             model = self.get_or_abort(model_pk)
             try:
                 model.delete()
-            except mongo.OperationError:
+            except OperationError:
                 abort(403)
 
     class ModelListResource(BaseModelResource):
@@ -56,7 +47,7 @@ def register_api_model(api, cls):
             try:
                 model = cls(**fields)
                 model.save()
-            except mongo.OperationError:
+            except OperationError:
                 abort(403)
             else:
                 return self.to_dict(model)
