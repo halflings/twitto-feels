@@ -1,9 +1,18 @@
-<h1 class="page-header">
-  {{ topic.name }}
-  <button ng-click="requestDelete()" class="btn btn-lg btn-danger pull-right" type="button">
-    <span class="glyphicon glyphicon-remove-circle"></span>
-  </button>
-</h1>
+<div ng-controller="TopicControlsCtrl">
+  <h1 class="page-header">
+    {{ topic.name }}
+    <div class="pull-right">
+      <button ng-click="toggleCollecting()" ng-class="{ 'btn-success': !collecting, 'btn-primary': collecting }"
+          title="Toggle topic collecting" class="btn btn-lg" type="button">
+        <span ng-show="collecting" class="glyphicon glyphicon-play"></span>
+        <span ng-hide="collecting" class="glyphicon glyphicon-pause"></span>
+      </button>
+      <button ng-click="requestDelete()" title="Delete topic" class="btn btn-lg btn-danger" type="button">
+        <span class="glyphicon glyphicon-remove-circle"></span>
+      </button>
+    </div>
+  </h1>
+</div>
 
 <h2>Map</h2>
 <google-map id=locations" center="map.center" zoom="map.zoom"

@@ -33,7 +33,7 @@ app.directive('ngEnter', function() {
   };
 });
 
-app.factory('ApiService', ['$q', '$http', function($q, $http) {
+app.factory('MongoApiService', function($q, $http) {
   function Service(baseURL) {
     this.baseURL = '/api' + baseURL;
   }
@@ -75,18 +75,30 @@ app.factory('ApiService', ['$q', '$http', function($q, $http) {
   };
 
   return Service;
-}]);
+});
 
-function makeBasicApiService(name, url) {
-  return app.factory(name, ['ApiService', function(ApiService) {
-    return new ApiService(url);
-  }]);
+function makeMongoApiService(name, url) {
+  return app.factory(name, function(MongoApiService) {
+    return new MongoApiService(url);
+  });
 }
 
-makeBasicApiService('TopicsService', '/topics');
-makeBasicApiService('TweetsService', '/tweets');
+makeMongoApiService('$topics', '/topics');
+makeMongoApiService('$tweets', '/tweets');
 
-app.factory('FlashService', ['$timeout', function($timeout) {
+app.factory('CollectorService', function($q, $http) {
+  var service = {};
+
+  service.getRunning = function() {
+  };
+
+  service.isRunning = function() {
+  };
+
+  return service;
+});
+
+app.factory('FlashService', function($timeout) {
   var flash = {};
 
   // Messages container
@@ -138,20 +150,20 @@ app.factory('FlashService', ['$timeout', function($timeout) {
   };
 
   return flash;
-}]);
+});
 
-app.controller('MainCtrl', function($scope, $http, TopicsService, TweetsService, FlashService) {
+app.controller('MainCtrl', function($scope, $http, $topics, $tweets, FlashService) {
   $scope.topics = [];
   $scope.tweets = [];
   $scope.flashMessages = FlashService.messages;
 
-  TopicsService.get().then(function(topics) {
+  $topics.get().then(function(topics) {
     $scope.topics = topics;
   }, function() {
     FlashService.add('Topics loading failed', 'danger');
   });
 
-  TweetsService.get().then(function(tweets) {
+  $tweets.get().then(function(tweets) {
     $scope.tweets = tweets;
   }, function() {
     FlashService.add('Tweets loading failed', 'danger');
@@ -159,7 +171,7 @@ app.controller('MainCtrl', function($scope, $http, TopicsService, TweetsService,
 });
 
 app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
-      $modal, TopicsService, FlashService) {
+      $topics, FlashService) {
 
   // Find "current" topic
   angular.forEach($scope.topics, function(topic, index) {
@@ -178,6 +190,22 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     }
   });
 
+  function buildMarkers() {
+    var data = [];
+    angular.forEach($scope.topic.tweets, function(tweet) {
+      data.push({ longitude: tweet.location[1], latitude: tweet.location[0] });
+    });
+
+    // Hack to fix buggy display of over 100 values
+    // (https://github.com/nlaplante/angular-google-maps/issues/16#issuecomment-38174956)
+    var maxValues = 100;
+    if (data.length > maxValues) {
+      data = _.shuffle(data)
+      data.splice(0, data.length - maxValues);
+    }
+    return data;
+  }
+
   $scope.map = {
     center: { latitude: 33.678176, longitude: -116.242568 },
     zoom: 11,
@@ -186,19 +214,21 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
         $scope.map.instance = map;
       }
     }, options: {
-      //mapTypeId: google.maps.MapTypeId.TERRAIN
-    }, markers: (function() {
-      var data = [];
-      angular.forEach($scope.topic.tweets, function(tweet) {
-        data.push({
-          longitude: tweet.location[1],
-          latitude: tweet.location[0]
-        });
-      });
-      return data;
-    })()
+      // extra options for map
+    }, markers: buildMarkers()
   };
 
+  $scope.delete = function() {
+    $topics.delete($scope.topic).then(function() {
+      $scope.topics.splice($scope.topicIndex, 1);
+      $location.path('/');
+    }, function() {
+      FlashService.add('An error occurred while deleting the given topic', 'danger');
+    });
+  };
+});
+
+app.controller('TopicControlsCtrl', function($scope, $modal) {
   $scope.requestDelete = function() {
     var modalInstance = $modal.open({
       templateUrl: 'confirm_topic_deletion.html',
@@ -218,19 +248,10 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
       $scope.delete();
     });
   };
-
-  $scope.delete = function() {
-    TopicsService.delete($scope.topic).then(function() {
-      $scope.topics.splice($scope.topicIndex, 1);
-      $location.path('/');
-    }, function() {
-      FlashService.add('An error occurred while deleting the given topic', 'danger');
-    });
-  };
 });
 
 app.controller('CreateTopicCtrl', function($scope, $location,
-      TopicsService, FlashService) {
+      $topics, FlashService) {
   $scope.name = '';
 
   // Tags
@@ -261,7 +282,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
         $scope.map.instance = map;
       }
     }, options: {
-      mapTypeId: google.maps.MapTypeId.TERRAIN
+      // extra options for map
     }
   };
 
@@ -351,7 +372,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
   };
   // form submission
   $scope.$submit = function() {
-    TopicsService.post({
+    $topics.post({
       name: $scope.name,
       tags: $scope.tags,
       locations: (function() {
@@ -364,7 +385,6 @@ app.controller('CreateTopicCtrl', function($scope, $location,
             loc.ne.lat
           );
         });
-        console.log(locations);
         return locations;
       })()
     }).then(function(topic) {
