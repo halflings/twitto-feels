@@ -32,7 +32,7 @@ class CollectorProcess(Process):
             print 'Saved: https://twitter.com/%s/status/%s' % (tweet.user, tweet.tweet_id)
         except (ValidationError, OperationError) as e:
             print 'Not saved:', e
-        return self.should_stop.is_set()
+        return not self.should_stop.is_set()
 
 class CollectorListResource(Resource):
     def get(self):
@@ -59,6 +59,6 @@ class CollectorResource(Resource):
         if topic_pk not in collectors:
             abort(403)
         collector_proc = collectors[topic_pk]
-        collector_proc.terminate()
+        collector_proc.should_stop.set()
         del collectors[topic_pk]
         collector_proc.join()
