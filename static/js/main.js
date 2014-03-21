@@ -4,7 +4,7 @@ function shortUID() {
   return ('0000' + (Math.random() * Math.pow(36,4) << 0).toString(36)).substr(-4);
 }
 
-var app = angular.module('twitto-feels', ['ngRoute', 'ui.bootstrap', 'google-maps']);
+var app = angular.module('twitto-feels', ['ngRoute', 'ngAnimate', 'ui.bootstrap', 'google-maps']);
 
 app.config(function($routeProvider) {
   $routeProvider.when('/', {
@@ -147,7 +147,7 @@ app.factory('$flash', function($timeout) {
   flash.noneType = 'none';
 
   // Timeout for message dismissal, in seconds
-  flash.timeout = 0;
+  flash.timeout = 1;
 
   flash.add = function(msg, type) {
     var self = this;
@@ -425,6 +425,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
   $scope.selectLocation = function(loc) {
     $scope.selectedLocation = loc;
   };
+
   $scope.removeSelectedLocation = function() {
     if (!$scope.selectedLocation) { return; }
     $scope.removeLocation($scope.selectedLocation);
@@ -443,21 +444,17 @@ app.controller('CreateTopicCtrl', function($scope, $location,
 
   // Form validation
   $scope.submit = function() {
-    var valid = true;
+    var errors = [];
 
-    // Validate name
-    if (!$scope.name) {
-      $flash.add('No name provided for the topic', 'danger');
-      valid = false;
+    // Validate required fields
+    if (!$scope.name) { errors.push('name'); }
+    if (!$scope.tags.length) { errors.push('tags'); }
+
+    if (errors.length > 0) {
+      $flash.add('Cannot create topic: ' + errors.join(', ') + ' have errors', 'danger');
+    } else {
+      $scope.$submit();
     }
-
-    // Validate tags
-    if (!$scope.tags.length) {
-      $flash.add('No tags provided for the topic', 'danger');
-      valid = false;
-    }
-
-    if (valid) { $scope.$submit(); }
   };
   // form submission
   $scope.$submit = function() {
