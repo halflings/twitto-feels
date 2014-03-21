@@ -147,9 +147,11 @@ app.factory('$flash', function($timeout) {
   flash.noneType = 'none';
 
   // Timeout for message dismissal, in seconds
-  flash.timeout = 1;
+  flash.timeout = 3;
 
-  flash.add = function(msg, type) {
+  flash.add = function(msg, type, timeout) {
+    if (timeout === undefined) { timeout = self.timeout; }
+
     var self = this;
 
     // Default arguments
@@ -184,8 +186,8 @@ app.factory('$flash', function($timeout) {
     self.messages.push(obj);
 
     // Finally, schedule dismissal
-    if (self.timeout > 0) {
-      $timeout(function() { obj.dismiss(); }, self.timeout * 1000);
+    if (timeout > 0) {
+      $timeout(function() { obj.dismiss(); }, timeout * 1000);
     }
   };
 
@@ -207,7 +209,7 @@ app.controller('MainCtrl', function($scope, $http, $topics, $flash) {
 });
 
 app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
-      $timeout, $topics, $tweets, $flash) {
+      $timeout, $topics, $tweets, $flash, $q) {
 
   $scope.map = {
     center: { latitude: 0, longitude: 0 },
@@ -222,7 +224,9 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
   $scope.tweets = [];
 
   // Load tweets for current topic
-  $scope.reloadTweets = function() {
+  $scope.reloadTweets = function(flashErrors) {
+    if (flashErrors === undefined) { flashErrors = true; }
+
     if (!$scope.topic) {
       console.error('Current topic is undefined');
       return;
@@ -231,20 +235,25 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     return $tweets.forTopic($scope.topic).then(function(tweets) {
       $scope.tweets = tweets;
     }, function() {
-      $flash.add('Tweets loading failed', 'danger');
+      if (flashErrors) { $flash.add('Tweets loading failed', 'danger'); }
+      return $q.reject();
     });
   };
 
   $scope.pollTweets = function(delay) {
     if (delay === undefined) { delay = 1000; }
 
-    $scope.reloadTweets().then(function() {
-      $scope.tweetPolling = $timeout(function doPoll() {
-        $scope.reloadTweets().then(function() {
-          $scope.tweetPolling = $timeout(doPoll, delay);
-        });
-      }, delay);
-    });
+    function doPoll() {
+      $scope.reloadTweets(false).then(function() {
+        $scope.tweetPolling = $timeout(doPoll, delay);
+      }, function() {
+        $timeout.cancel($scope.tweetPolling);
+        $flash.add('Tweet polling stopped (unexpected error), reload page to restart', 'danger', 0);
+      });
+    }
+
+    // Start the poll!
+    doPoll();
   };
 
   // Load current topic
@@ -300,7 +309,7 @@ app.controller('TopicControlsCtrl', function($scope, $modal, $collectors, $flash
       return;
     }
 
-    // Toggle !
+    // Toggle!
     var promise;
     if ($scope.collecting) {
       promise = $collectors.delete($scope.topic);
