@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 function shortUID() {
   return ('0000' + (Math.random() * Math.pow(36,4) << 0).toString(36)).substr(-4);
@@ -22,7 +22,7 @@ app.config(function($routeProvider) {
 
 app.directive('ngEnter', function() {
   return function($scope, elem, attrs) {
-    elem.bind("keydown keypress", function(evt) {
+    elem.bind('keydown keypress', function(evt) {
       if (evt.which === 13) {
         $scope.$apply(function (){
           $scope.$eval(attrs.ngEnter);
@@ -206,7 +206,8 @@ app.controller('MainCtrl', function($scope, $http, $topics, $flash) {
   $scope.reloadTopics();
 });
 
-app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topics, $tweets, $flash) {
+app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
+      $timeout, $topics, $tweets, $flash) {
 
   $scope.map = {
     center: { latitude: 0, longitude: 0 },
@@ -234,6 +235,18 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topic
     });
   };
 
+  $scope.pollTweets = function(delay) {
+    if (delay === undefined) { delay = 1000; }
+
+    $scope.reloadTweets().then(function() {
+      $scope.tweetPolling = $timeout(function doPoll() {
+        $scope.reloadTweets().then(function() {
+          $scope.tweetPolling = $timeout(doPoll, delay);
+        });
+      }, delay);
+    });
+  };
+
   // Load current topic
   $scope.reloadCurrentTopic = function() {
     return $topics.get($routeParams.topicId).then(function(topic) {
@@ -245,25 +258,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location, $topic
 
   // Load everything
   $scope.reloadCurrentTopic().then(function() {
-    $scope.reloadTweets();
-  });
-
-  // Markers for map
-  $scope.$watch('tweets', function() {
-    var markers = [];
-    angular.forEach($scope.tweets, function(tweet) {
-      markers.push({ longitude: tweet.location[1], latitude: tweet.location[0] });
-    });
-
-    // Hack to fix buggy display of over 100 values
-    // (https://github.com/nlaplante/angular-google-maps/issues/16#issuecomment-38174956)
-    var maxValues = 100;
-    if (markers.length > maxValues) {
-      markers = _.shuffle(markers);
-      markers.splice(0, markers.length - maxValues);
-    }
-
-    //$scope.map.markers = markers;
+    $scope.pollTweets();
   });
 
   $scope.delete = function() {

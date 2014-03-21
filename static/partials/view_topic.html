@@ -18,22 +18,21 @@
 <google-map id=locations" center="map.center" zoom="map.zoom"
   events="map.events" options="map.options"
   draggable="true">
-  <markers models="map.markers" coords="'self'" fit="true"></markers>
 </google-map>
 
 <h2>Tweets</h2>
-<table ng-show="tweets" class="table">
+<table ng-init="tweetLimit = 50" ng-show="tweets" class="table">
   <tr>
-    <th>Text</th>
+    <th>Status</th>
     <th>User</th>
-    <th>Geo enabled</th>
   </tr>
-  <tr ng-repeat="tweet in tweets">
-    <td>{{ tweet.status }}</td>
+  <tr ng-repeat="tweet in tweets|limitTo:tweetLimit">
+    <td>{{ tweet.status }} <a href="https://twitter.com/{{ tweet.user }}/statuses/{{ tweet.tweet_id }}">(link)</a></td>
     <td><a href="https://twitter.com/{{ tweet.user }}">{{ tweet.user }}</a></td>
-    <td><input type="checkbox" ng-model="tweet.user_geo_enabled" disabled></td>
   </tr>
 </table>
+<a ng-show="tweets.length > tweetLimit" ng-click="tweetLimit = tweetLimit + 50"
+  href="" class="btn btn-default btn-block">Show more tweets</a>
 
 <script type="text/ng-template" id="confirm_topic_deletion.html">
   <div class="modal-header">
