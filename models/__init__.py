@@ -64,6 +64,10 @@ class Tweet(Document):
 
     __repr__ = __str__
 
+class TweetPolarity(Document):
+    tweet = fields.ReferenceField(Tweet, required=True)
+    polarity = fields.FloatField(required=True)
+
 def _preprocess_text(text):
     """
     Prepare a string for syntaxic treatment (encode to utf-8, remove
