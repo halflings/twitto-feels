@@ -60,7 +60,7 @@ class Tweet(Document):
         return make_tweet(data)
 
     def __str__(self):
-        return '<@{}> - "{}"'.format(self.user, self.status)
+        return '<@%s> - "%s"' % (self.user, self.status)
 
     __repr__ = __str__
 
