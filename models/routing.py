@@ -1,14 +1,17 @@
 import json
 from flask.ext.restful import abort, Resource
 from mongoengine import OperationError
-from helpers import get_request_json
+from helpers import get_request_json, slugify
+import inflect
+
+_inflect_engine = inflect.engine()
 
 class ModelResource(Resource):
     def to_dict(self, model):
         return json.loads(model.to_json())
 
 def register_api_model(api, cls):
-    model_name = cls.__name__.lower()
+    model_name = slugify(cls.__name__)
 
     class SingleModelResource(ModelResource):
         def get_or_abort(self, pk, *args, **kwargs):
@@ -52,9 +55,24 @@ def register_api_model(api, cls):
             else:
                 return self.to_dict(model)
 
+    class ModelQueryResource(ModelResource):
+        def post(self):
+            data = get_request_json()
+            if 'query' not in data:
+                abort(400)
+            query_handler_name = 'handle_%s' % data['query']
+            if not hasattr(self, query_handler_name):
+                abort(404)
+            return getattr(self, query_handler_name)(data)
+
+        def handle_related(self, query):
+            if 'on' not in query or 'pk' not in query:
+                abort(400)
+            return self.to_dict(cls.objects(**{ query['on']: query['pk'] }))
+
     # register api resources
-    model_base_url = '/%ss' % model_name
-    api.add_resource(SingleModelResource, model_base_url + '/<model_pk>',
-            endpoint=model_name)
-    api.add_resource(ModelListResource, model_base_url,
-            endpoint='%s_list' % model_name)
+    model_base_url = '/%s' % _inflect_engine.plural(model_name)
+    api.add_resource(SingleModelResource, model_base_url + '/<model_pk>', endpoint=model_name)
+    api.add_resource(ModelListResource, model_base_url, endpoint='%s_list' % model_name)
+    api.add_resource(ModelQueryResource, model_base_url + '/query', endpoint='%s_query' % model_name)
+    print ' * [API] registering model %s at %s' % (model_name, model_base_url)

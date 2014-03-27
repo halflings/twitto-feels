@@ -34,20 +34,12 @@ app.directive('ngEnter', function() {
 });
 
 app.factory('MongoApiService', function($q, $http) {
-  function Service(baseURL) {
-    this.baseURL = '/api' + baseURL;
+  function Service(basename) {
+    this.basename = basename;
+    this.baseURL = '/api/' + this.basename;
   }
 
-  Service.prototype.get = function(id) {
-    var deferred = $q.defer();
-    $http.get((id !== undefined) ? this.baseURL + '/' + id : this.baseURL)
-      .success(function(obj) { deferred.resolve(obj); })
-      .error(function() { deferred.reject(); })
-    ;
-    return deferred.promise;
-  };
-
-  Service.prototype.post = function(obj) {
+  Service.prototype.create = function(obj) {
     var deferred = $q.defer();
     $http.post(this.baseURL, obj)
       .success(function(obj) { deferred.resolve(obj); })
@@ -56,7 +48,16 @@ app.factory('MongoApiService', function($q, $http) {
     return deferred.promise;
   };
 
-  Service.prototype.put = function(obj) {
+  Service.prototype.read = function(id) {
+    var deferred = $q.defer();
+    $http.get((id !== undefined) ? this.baseURL + '/' + id : this.baseURL)
+      .success(function(obj) { deferred.resolve(obj); })
+      .error(function() { deferred.reject(); })
+    ;
+    return deferred.promise;
+  };
+
+  Service.prototype.update = function(obj) {
     var deferred = $q.defer();
     $http.put(this.baseURL + '/' + obj._id.$oid, obj)
       .success(function(obj) { deferred.resolve(obj); })
@@ -74,33 +75,43 @@ app.factory('MongoApiService', function($q, $http) {
     return deferred.promise;
   };
 
-  return Service;
-});
+  Service.prototype.query = function(type, query) {
+    // Default arguments
+    if (query === undefined) {
+      query = type;
+    } else {
+      query.query = type;
+    }
 
-app.factory('$topics', function(MongoApiService, $tweets) {
-  var service = new MongoApiService('/topics');
+    // Argument checks
+    if (query === undefined) {
+      console.error('Bad argument "type": excepted query object or query'
+          + ' type with extra query object argument');
+      return;
+    } else if (query.query === undefined) {
+      console.error('Bad argument "type": excepted "query" key');
+      return;
+    }
 
-  service.tweets = function(topic) {
-    return $tweets.forTopic(topic);
-  };
-
-  return service;
-});
-
-app.factory('$tweets', function(MongoApiService, $q, $http) {
-  var service = new MongoApiService('/tweets');
-
-  service.forTopic = function(topic) {
+    // Query
     var deferred = $q.defer();
-    $http.post(this.baseURL + '/query', { topic: topic._id.$oid })
+    $http.post(this.baseURL + '/query', query)
       .success(function(obj) { deferred.resolve(obj); })
       .error(function() { deferred.reject(); })
     ;
+
     return deferred.promise;
   };
 
-  return service;
+  Service.prototype.listRelated = function(type, obj) {
+    return this.query('related', { on: type, pk: obj._id.$oid });
+  };
+
+  return Service;
 });
+
+app.factory('$topics', function(MongoApiService) { return new MongoApiService('topics'); });
+app.factory('$tweets', function(MongoApiService) { return new MongoApiService('tweets'); });
 
 app.factory('$collectors', function($q, $http) {
   var service = { baseURL: '/api/collectors' };
@@ -199,7 +210,7 @@ app.controller('MainCtrl', function($scope, $http, $topics, $flash) {
   $scope.flashMessages = $flash.messages;
 
   $scope.reloadTopics = function() {
-    $topics.get().then(function(topics) {
+    $topics.read().then(function(topics) {
       $scope.topics = topics;
     }, function() {
       $flash.add('Topics loading failed', 'danger');
@@ -232,7 +243,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
       return;
     }
 
-    return $tweets.forTopic($scope.topic).then(function(tweets) {
+    return $tweets.listRelated('topic', $scope.topic).then(function(tweets) {
       $scope.tweets = tweets;
     }, function() {
       if (flashErrors) { $flash.add('Tweets loading failed', 'danger'); }
@@ -258,7 +269,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
 
   // Load current topic
   $scope.reloadCurrentTopic = function() {
-    return $topics.get($routeParams.topicId).then(function(topic) {
+    return $topics.read($routeParams.topicId).then(function(topic) {
       $scope.topic = topic;
     }, function() {
       $flash.add('Current topic loading failed', 'danger');
@@ -467,7 +478,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
   };
   // form submission
   $scope.$submit = function() {
-    $topics.post({
+    $topics.create({
       name: $scope.name,
       tags: $scope.tags,
       locations: (function() {
