@@ -1,6 +1,6 @@
 import json
 from flask.ext.restful import abort, Resource
-from mongoengine import OperationError
+from mongoengine import OperationError, InvalidQueryError
 from helpers import get_request_json, slugify
 import inflect
 
@@ -68,7 +68,10 @@ def register_api_model(api, cls):
         def handle_related(self, query):
             if 'on' not in query or 'pk' not in query:
                 abort(400)
-            return self.to_dict(cls.objects(**{ query['on']: query['pk'] }))
+            try:
+                return self.to_dict(cls.objects(**{ query['on']: query['pk'] }))
+            except InvalidQueryError:
+                abort(403)
 
     # register api resources
     model_base_url = '/%s' % _inflect_engine.plural(model_name)
