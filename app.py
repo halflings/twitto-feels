@@ -1,11 +1,9 @@
-import json
-from flask import Flask, request, abort
-from flask.ext.restful import Resource, Api
+from flask import Flask
+from flask.ext.restful import Api
 from mongoengine import connect
 from models import Tweet, Topic
-from models.routing import register_api_model, ModelResource
+from models.routing import register_api_model
 from collecting.routes import CollectorListResource, CollectorResource
-from helpers import get_request_json
 import config
 
 app = Flask(__name__, static_url_path='')
