@@ -110,40 +110,48 @@ app.factory('MongoApiService', function($q, $http) {
   return Service;
 });
 
-app.factory('$topics', function(MongoApiService) { return new MongoApiService('topics'); });
-app.factory('$tweets', function(MongoApiService) { return new MongoApiService('tweets'); });
+app.factory('$api', function(MongoApiService, $q, $http) {
+  return {
+    topics: new MongoApiService('topics'),
+    tweets: new MongoApiService('tweets'),
+    tweet_polarities: new MongoApiService('tweet_polarities'),
 
-app.factory('$collectors', function($q, $http) {
-  var service = { baseURL: '/api/collectors' };
+    // Collectors API resource (non-generic)
+    collectors: {
+      baseURL: '/api/collectors',
 
-  service.get = function() {
-    var deferred = $q.defer();
-    $http.get(this.baseURL)
-      .success(function(obj) { deferred.resolve(obj); })
-      .error(function() { deferred.reject(); })
-    ;
-    return deferred.promise;
+      // list collectors
+      // TODO get -> read
+      get: function() {
+        var deferred = $q.defer();
+        $http.get(this.baseURL)
+          .success(function(obj) { deferred.resolve(obj); })
+          .error(function() { deferred.reject(); })
+        ;
+        return deferred.promise;
+      },
+
+      // create a new collector
+      post: function(topic) {
+        var deferred = $q.defer();
+        $http.post(this.baseURL, { topic_id: topic._id.$oid })
+          .success(function(obj) { deferred.resolve(obj); })
+          .error(function() { deferred.reject(); })
+        ;
+        return deferred.promise;
+      },
+
+      // delete a collector
+      delete: function(topic) {
+        var deferred = $q.defer();
+        $http.delete(this.baseURL + '/' + topic._id.$oid)
+          .success(function() { deferred.resolve(); })
+          .error(function() { deferred.reject(); })
+        ;
+        return deferred.promise;
+      }
+    }
   };
-
-  service.post = function(topic) {
-    var deferred = $q.defer();
-    $http.post(this.baseURL, { topic_id: topic._id.$oid })
-      .success(function(obj) { deferred.resolve(obj); })
-      .error(function() { deferred.reject(); })
-    ;
-    return deferred.promise;
-  };
-
-  service.delete = function(topic) {
-    var deferred = $q.defer();
-    $http.delete(this.baseURL + '/' + topic._id.$oid)
-      .success(function() { deferred.resolve(); })
-      .error(function() { deferred.reject(); })
-    ;
-    return deferred.promise;
-  };
-
-  return service;
 });
 
 app.factory('$flash', function($timeout) {
@@ -205,12 +213,12 @@ app.factory('$flash', function($timeout) {
   return flash;
 });
 
-app.controller('MainCtrl', function($scope, $http, $topics, $flash) {
+app.controller('MainCtrl', function($scope, $http, $api, $flash) {
   $scope.topics = [];
   $scope.flashMessages = $flash.messages;
 
   $scope.reloadTopics = function() {
-    $topics.read().then(function(topics) {
+    $api.topics.read().then(function(topics) {
       $scope.topics = topics;
     }, function() {
       $flash.add('Topics loading failed', 'danger');
@@ -220,7 +228,7 @@ app.controller('MainCtrl', function($scope, $http, $topics, $flash) {
 });
 
 app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
-      $timeout, $topics, $tweets, $flash, $q) {
+      $timeout, $q, $api, $flash) {
 
   $scope.map = {
     center: { latitude: 0, longitude: 0 },
@@ -243,19 +251,28 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
       return;
     }
 
-    return $tweets.listRelated('topic', $scope.topic).then(function(tweets) {
+    var deferred = $q.defer();
+    $api.tweets.listRelated('topic', $scope.topic).then(function(tweets) {
       $scope.tweets = tweets;
+      $api.tweet_polarities.read().then(function(tweet_polarities) {
+        $scope.tweet_polarities = tweet_polarities;
+        deferred.resolve();
+      }, function() {
+         $flash.add('Tweets polarities loading failed', 'danger');
+        deferred.reject();
+      });
     }, function() {
-      if (flashErrors) { $flash.add('Tweets loading failed', 'danger'); }
-      return $q.reject();
+      $flash.add('Tweets loading failed', 'danger');
+        deferred.reject();
     });
+    return deferred.promise;
   };
 
   $scope.pollTweets = function(delay) {
     if (delay === undefined) { delay = 1000; }
 
     function doPoll() {
-      $scope.reloadTweets(false).then(function() {
+      $scope.reloadTweets().then(function() {
         $scope.tweetPolling = $timeout(doPoll, delay);
       }, function() {
         $timeout.cancel($scope.tweetPolling);
@@ -269,7 +286,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
 
   // Load current topic
   $scope.reloadCurrentTopic = function() {
-    return $topics.read($routeParams.topicId).then(function(topic) {
+    return $api.topics.read($routeParams.topicId).then(function(topic) {
       $scope.topic = topic;
     }, function() {
       $flash.add('Current topic loading failed', 'danger');
@@ -278,24 +295,38 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
 
   // Load everything
   $scope.reloadCurrentTopic().then(function() {
-    $scope.pollTweets();
+    $scope.reloadTweets();
   });
 
   $scope.delete = function() {
-    $topics.delete($scope.topic).then(function() {
+    $api.topics.delete($scope.topic).then(function() {
       $scope.reloadTopics();
       $location.path('/');
     }, function() {
       $flash.add('An error occurred while deleting the given topic', 'danger');
     });
   };
+
+  // Tweet markers on map
+  $scope.$watch('tweets', function() {
+    _.each($scope.map.markers, function(m) { m.setMap(null); });
+    $scope.map.markers = [];
+    _.each($scope.tweets, function (tweet) {
+      if (!tweet.location.length) { return; }
+      $scope.map.markers.push(new google.maps.Marker({
+        position: new google.maps.LatLng(tweet.location[0], tweet.location[1]),
+        map: $scope.map.instance,
+        title: tweet.status
+      }));
+    });
+  });
 });
 
-app.controller('TopicControlsCtrl', function($scope, $modal, $collectors, $flash) {
+app.controller('TopicControlsCtrl', function($scope, $modal, $api, $flash) {
 
   // Collectors reloading
   $scope.reloadCollectors = function() {
-    $collectors.get().then(function(collectors) {
+    $api.collectors.get().then(function(collectors) {
       $scope.collectors = collectors;
     }, function() {
       $flash.add('Collectors loading failed', 'danger');
@@ -323,9 +354,9 @@ app.controller('TopicControlsCtrl', function($scope, $modal, $collectors, $flash
     // Toggle!
     var promise;
     if ($scope.collecting) {
-      promise = $collectors.delete($scope.topic);
+      promise = $api.collectors.delete($scope.topic);
     } else {
-      promise = $collectors.post($scope.topic);
+      promise = $api.collectors.post($scope.topic);
     }
 
     var savedState = $scope.collecting;
@@ -362,7 +393,7 @@ app.controller('TopicControlsCtrl', function($scope, $modal, $collectors, $flash
 
 // TODO big refactor needed, this controller is *way* too big
 app.controller('CreateTopicCtrl', function($scope, $location,
-      $topics, $flash) {
+      $api, $flash) {
   $scope.name = '';
 
   // Tags
@@ -478,7 +509,7 @@ app.controller('CreateTopicCtrl', function($scope, $location,
   };
   // form submission
   $scope.$submit = function() {
-    $topics.create({
+    $api.topics.create({
       name: $scope.name,
       tags: $scope.tags,
       locations: (function() {
