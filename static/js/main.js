@@ -114,7 +114,6 @@ app.factory('$api', function(MongoApiService, $q, $http) {
   return {
     topics: new MongoApiService('topics'),
     tweets: new MongoApiService('tweets'),
-    tweet_polarities: new MongoApiService('tweet_polarities'),
 
     // Collectors API resource (non-generic)
     collectors: {
@@ -254,16 +253,10 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     var deferred = $q.defer();
     $api.tweets.listRelated('topic', $scope.topic).then(function(tweets) {
       $scope.tweets = tweets;
-      $api.tweet_polarities.read().then(function(tweet_polarities) {
-        $scope.tweet_polarities = tweet_polarities;
-        deferred.resolve();
-      }, function() {
-         $flash.add('Tweets polarities loading failed', 'danger');
-        deferred.reject();
-      });
+      deferred.resolve();
     }, function() {
       $flash.add('Tweets loading failed', 'danger');
-        deferred.reject();
+      deferred.reject();
     });
     return deferred.promise;
   };

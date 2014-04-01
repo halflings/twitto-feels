@@ -50,6 +50,8 @@ class Tweet(Document):
     user = fields.StringField()
     location = fields.ListField(fields.FloatField())
 
+    polarity = fields.FloatField()
+
     def clean(self):
         if len(self.location) > 0 and len(self.location) != 2:
             msg = 'Location should be either empty or (x, y) position'
@@ -63,10 +65,6 @@ class Tweet(Document):
         return '<@%s> - "%s"' % (self.user, self.status)
 
     __repr__ = __str__
-
-class TweetPolarity(Document):
-    tweet = fields.ReferenceField(Tweet, required=True)
-    polarity = fields.FloatField(required=True)
 
 def _preprocess_text(text):
     """

@@ -25,10 +25,12 @@
   <tr>
     <th>Status</th>
     <th>User</th>
+    <th>Polarity</th>
   </tr>
   <tr ng-repeat="tweet in tweets|limitTo:tweetLimit">
     <td>{{ tweet.status }} <a href="https://twitter.com/{{ tweet.user }}/statuses/{{ tweet.tweet_id }}">(link)</a></td>
     <td><a href="https://twitter.com/{{ tweet.user }}">{{ tweet.user }}</a></td>
+    <td>{{ tweet.polarity }}</td>
   </tr>
 </table>
 <a ng-show="tweets.length > tweetLimit" ng-click="tweetLimit = tweetLimit + 50"

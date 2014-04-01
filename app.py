@@ -2,7 +2,7 @@ import json
 from flask import Flask, request, abort
 from flask.ext.restful import Resource, Api
 from mongoengine import connect
-from models import Tweet, Topic, TweetPolarity
+from models import Tweet, Topic
 from models.routing import register_api_model, ModelResource
 from collecting.routes import CollectorListResource, CollectorResource
 from helpers import get_request_json
@@ -21,7 +21,6 @@ def index():
 # register api models
 register_api_model(api, Topic)
 register_api_model(api, Tweet)
-register_api_model(api, TweetPolarity)
 
 # collectors resource
 api.add_resource(CollectorListResource, '/collectors')
