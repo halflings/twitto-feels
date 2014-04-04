@@ -313,6 +313,23 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
       }));
     });
   });
+
+  // Convert a polarity in [-1, 1] to a color from red to green
+  $scope.polarityColor = function(polarity) {
+    if (polarity == 0) { return '#ffffff' }
+
+    // Compute color component for polarity opposite colors
+    var component = (function(ratio) {
+      var repr = Math.round(ratio * 255).toString(16);
+      if (repr.length < 2) { repr = '0' + repr; }
+      console.log(repr);
+      return repr;
+    }) (1 - Math.abs(polarity));
+
+    return (polarity > 0)
+      ? '#' + component + 'ff' + component
+      : '#' + 'ff' + component + component;
+  };
 });
 
 app.controller('TopicControlsCtrl', function($scope, $modal, $api, $flash) {

@@ -27,7 +27,7 @@
     <th>User</th>
     <th>Polarity</th>
   </tr>
-  <tr ng-repeat="tweet in tweets|limitTo:tweetLimit">
+  <tr ng-repeat="tweet in tweets|limitTo:tweetLimit" ng-style="{ backgroundColor: polarityColor(tweet.polarity) }">
     <td>{{ tweet.status }} <a href="https://twitter.com/{{ tweet.user }}/statuses/{{ tweet.tweet_id }}">(link)</a></td>
     <td><a href="https://twitter.com/{{ tweet.user }}">{{ tweet.user }}</a></td>
     <td>{{ tweet.polarity }}</td>
