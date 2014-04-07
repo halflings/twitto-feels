@@ -1,6 +1,9 @@
 from textblob import TextBlob
-from mongoengine import Document, fields
+import mongoengine
+
+import config
 from models import Tweet
+
 
 def naive_tweet_polarity(tweet):
     """
@@ -13,12 +16,7 @@ def naive_tweet_polarity(tweet):
     return tweet
 
 if __name__ == '__main__':
-    from mongoengine import connect
-    from models import Tweet
-    import config
-
-    connect(config.db_name, host=config.db_host, port=config.db_port,
-            username=config.db_user, password=config.db_pass)
+    mongoengine.connect(config.db_name)
 
     nbtweets = len(Tweet.objects)
     for i, tweet in enumerate(Tweet.objects):
