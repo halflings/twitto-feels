@@ -9,6 +9,14 @@ class Topic(Document):
     tags = fields.ListField(fields.StringField())
     locations = fields.ListField(fields.FloatField())
 
+    @property
+    def location_boxes(self):
+        """
+        Access the locations as a
+        """
+        assert len(self.locations) % 4 == 0, 'Length of "locations" should be a multiple of 4'
+        return [self.locations[i:i+4] for i in xrange(0, len(self.locations), 4)]
+
     def clean(self):
         """
         Ensure that the "locations" member corresponds to one or many bounding

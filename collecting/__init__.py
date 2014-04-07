@@ -9,24 +9,13 @@ class TweetListener(tweepy.StreamListener):
     on_tweet method, called with a Tweet object.
     """
 
-    # TODO : this is
-    def valid_location(self, status):
-        return True
-        # TODO : this currently always return 2, the example should be integrated with the topic's location
-        if status.coordinates is None:
-            return False
-
-        lat = status.coordinates['coordinates'][1]
-        lng = status.coordinates['coordinates'][0]
-        return 25.1 < lat < 49.1 and -125 < lng < -60.5
-
     def on_error(self, status_code):
         print >> sys.stderr, 'Error:', status_code
         return False
 
     def on_data(self, raw_data):
         data = json.loads(raw_data)
-        if ('limit' in data and 'track' in data['limit']) or not self.valid_location(raw_data):
+        if 'limit' in data and 'track' in data['limit']:
             return
 
         return self.on_tweet(Tweet.from_raw_tweet(data))
@@ -52,11 +41,30 @@ class TopicStreamer(object):
         self.listener.on_tweet = self._tweet_handler
 
     def _tweet_handler(self, tweet):
+        if not self.tweet_in_locations(tweet):
+            return
+
+        # all is good
         tweet.topic = self.topic
         if self.tweet_handler is not None:
             return self.tweet_handler(tweet)
         else:
             print 'Streamed for topic {}: {}'.format(tweet.topic, tweet)
+
+    def tweet_in_locations(self, tweet):
+        """
+        Figure out if the tweet is in the locations defined for the current
+        topic. Always true when no locations are defined.
+        """
+        if len(self.topic.locations) == 0:
+            return True
+        elif len(tweet.location) == 0:
+            return False # or True ?
+
+        # coordinates
+        lng, lat = tweet.location
+        return all(latSW < lat < latNE and lngSW < lng < lngNE \
+                for lngSW, latSW, lngNE, latNE in self.topic.location_boxes)
 
     def run(self):
         """
