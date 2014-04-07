@@ -235,6 +235,20 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     events: {
       tilesloaded: function(map) {
         $scope.map.instance = map;
+
+        // Tweet markers on map
+        $scope.$watch('tweets', function() {
+          _.each($scope.map.markers, function(m) { m.setMap(null); });
+          $scope.map.markers = [];
+          _.each($scope.tweets, function (tweet) {
+            if (!tweet.location.length) { return; }
+            $scope.map.markers.push(new google.maps.Marker({
+              position: new google.maps.LatLng(tweet.location[0], tweet.location[1]),
+              map: $scope.map.instance,
+              title: tweet.status
+            }));
+          });
+        });
       }
     }
   };
@@ -300,20 +314,6 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     });
   };
 
-  // Tweet markers on map
-  $scope.$watch('tweets', function() {
-    _.each($scope.map.markers, function(m) { m.setMap(null); });
-    $scope.map.markers = [];
-    _.each($scope.tweets, function (tweet) {
-      if (!tweet.location.length) { return; }
-      $scope.map.markers.push(new google.maps.Marker({
-        position: new google.maps.LatLng(tweet.location[0], tweet.location[1]),
-        map: $scope.map.instance,
-        title: tweet.status
-      }));
-    });
-  });
-
   // Convert a polarity in [-1, 1] to a color from red to green
   $scope.polarityColor = function(polarity) {
     if (polarity == 0) { return '#ffffff' }
@@ -322,7 +322,6 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     var component = (function(ratio) {
       var repr = Math.round(ratio * 255).toString(16);
       if (repr.length < 2) { repr = '0' + repr; }
-      console.log(repr);
       return repr;
     }) (1 - Math.abs(polarity));
 
