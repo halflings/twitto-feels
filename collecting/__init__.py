@@ -1,21 +1,34 @@
 import sys
 import tweepy
 import json
-from models import Tweet, Topic
+from models import Tweet
 
 class TweetListener(tweepy.StreamListener):
     """
     Custom tweepy.StreamListener, used to handle tweets directly through the
     on_tweet method, called with a Tweet object.
     """
+
+    # TODO : this is
+    def valid_location(self, status):
+        return True
+        # TODO : this currently always return 2, the example should be integrated with the topic's location
+        if status.coordinates is None:
+            return False
+
+        lat = status.coordinates['coordinates'][1]
+        lng = status.coordinates['coordinates'][0]
+        return 25.1 < lat < 49.1 and -125 < lng < -60.5
+
     def on_error(self, status_code):
         print >> sys.stderr, 'Error:', status_code
         return False
 
     def on_data(self, raw_data):
         data = json.loads(raw_data)
-        if 'limit' in data and 'track' in data['limit']:
+        if ('limit' in data and 'track' in data['limit']) or not self.valid_location(raw_data):
             return
+
         return self.on_tweet(Tweet.from_raw_tweet(data))
 
     def on_tweet(self, tweet):
