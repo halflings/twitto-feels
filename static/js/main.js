@@ -246,25 +246,30 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     events: {
       tilesloaded: function(map) {
         $scope.map.instance = map;
-
-        // Tweet markers on map
-        $scope.$watch('tweets', function() {
-          for (var i = 0; i < $scope.tweets.length; i++) {
-            if (i >= 100) { break; } // MAGIIIIIC NUMBERS!!!
-
-            var tweet = $scope.tweets[i];
-            if (!tweet.location.length) { return; }
-            $scope.map.markers.push(new google.maps.Marker({
-              position: new google.maps.LatLng(tweet.location[0], tweet.location[1]),
-              map: $scope.map.instance,
-              title: tweet.status
-            }));
-          }
-        });
+        $scope.tweets = angular.copy($scope.tweets);
       }
     },
     markers: []
   };
+
+  // Tweet markers on map
+  $scope.$watch('tweets', function() {
+    if ($scope.map.instance === undefined) { return; }
+
+    var tweetLimit = 100;
+    if ($scope.map.markers.length > tweetLimit) { return; }
+    for (var i = 0; i < $scope.tweets.length; i++) {
+      var tweet = $scope.tweets[i];
+      if (!tweet.location.length) { continue; }
+
+      if (i > tweetLimit) { break; }
+      $scope.map.markers.push(new google.maps.Marker({
+        position: new google.maps.LatLng(tweet.location[0], tweet.location[1]),
+        map: $scope.map.instance,
+        title: tweet.status
+      }));
+    }
+  });
 
   $scope.tweets = [];
 
@@ -358,8 +363,10 @@ app.controller('TopicControlsCtrl', function($scope, $timeout, $modal, $api, $fl
         $scope.tweets.push(tweet);
         $scope.tweetPolling = $timeout(doPoll, delay);
       }, function() {
+        if ($scope.collecting) {
+          $flash.add('Tweet polling stopped (unexpected error), reload page to restart', 'danger', 0);
+        }
         $scope.stopPollingTweets();
-        $flash.add('Tweet polling stopped (unexpected error), reload page to restart', 'danger', 0);
       });
     }
 
@@ -369,6 +376,7 @@ app.controller('TopicControlsCtrl', function($scope, $timeout, $modal, $api, $fl
 
   $scope.stopPollingTweets = function() {
     $timeout.cancel($scope.tweetPolling);
+    $scope.collecting = false;
   };
 
   // Toggle collector state
