@@ -396,17 +396,21 @@ app.controller('TopicControlsCtrl', function($scope, $timeout, $modal, $api, $fl
 
     var savedState = $scope.collecting;
     promise.then(function() {
-      if ($scope.collecting) {
-        $scope.pollTweets();
-      } else {
-        $scope.stopPollingTweets();
-      }
+      // do nothing ?
     }, function() {
       $scope.collecting = savedState;
     });
     // apply immediately
     $scope.collecting = !$scope.collecting;
   };
+
+  $scope.$watch('collecting', function() {
+    if ($scope.collecting) {
+      $scope.pollTweets();
+    } else {
+      $scope.stopPollingTweets();
+    }
+  });
 
   // Delete current topic
   $scope.requestDelete = function() {
