@@ -32,9 +32,9 @@ class CollectorProcess(Process):
         try:
             tweet.save()
             self.queue.put(tweet)
-            print 'Saved: https://twitter.com/%s/status/%s' % (tweet.user, tweet.tweet_id)
+            #print 'Saved: https://twitter.com/%s/status/%s' % (tweet.user, tweet.tweet_id)
         except (ValidationError, OperationError) as e:
-            print 'Not saved:', e
+            pass#print 'Not saved:', e
         return not self.should_stop.is_set()
 
 class CollectorListResource(Resource):
