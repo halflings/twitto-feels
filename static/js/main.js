@@ -373,7 +373,7 @@ app.controller('TopicControlsCtrl', function($scope, $timeout, $modal, $api, $fl
         $scope.tweetPolling = $timeout(doPoll, delay);
       }, function() {
         if ($scope.collecting) {
-          $flash.add('Tweet polling stopped (unexpected error), reload page to restart', 'danger', 0);
+          //$flash.add('Tweet polling stopped (unexpected error), reload page to restart', 'danger', 0);
         }
         $scope.stopPollingTweets();
       });
