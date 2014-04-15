@@ -10,9 +10,13 @@ def naive_tweet_polarity(tweet):
     *Very* naive algorithm computing tweet polarity (ranging from -1 to 1).
     """
     blob = TextBlob(tweet.status)
-    polarities = [x.sentiment.polarity for x in blob.sentences]
-    tweet.polarity = sum(polarities) / len(polarities) \
-            if polarities else 0
+    try:
+        polarities = [x.sentiment.polarity for x in blob.sentences]
+    except UnicodeDecodeError:
+        tweet.polarity = 0
+    else:
+        tweet.polarity = sum(polarities) / len(polarities) \
+                if polarities else 0
     return tweet
 
 if __name__ == '__main__':

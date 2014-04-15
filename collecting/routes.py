@@ -7,6 +7,7 @@ import tweepy
 from collecting import collect_for_topic
 from models import Topic
 from models.routing import ModelResource
+from more_feels import naive_tweet_polarity
 from helpers import get_request_json
 import config
 
@@ -31,6 +32,7 @@ class CollectorProcess(Process):
     def handle_tweet(self, tweet):
         try:
             tweet.save()
+            tweet = naive_tweet_polarity(tweet)
             self.queue.put(tweet)
             #print 'Saved: https://twitter.com/%s/status/%s' % (tweet.user, tweet.tweet_id)
         except (ValidationError, OperationError) as e:

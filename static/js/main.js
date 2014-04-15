@@ -308,11 +308,14 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
   });
 
   $scope.delete = function() {
-    $api.topics.delete($scope.topic).then(function() {
-      $scope.reloadTopics();
-      $location.path('/');
-    }, function() {
-      $flash.add('An error occurred while deleting the given topic', 'danger');
+    $api.collectors.delete($scope.topic).then(function() {
+      $scope.stopPollingTweets();
+      $api.topics.delete($scope.topic).then(function() {
+        $scope.reloadTopics();
+        $location.path('/');
+      }, function() {
+        $flash.add('An error occurred while deleting the given topic', 'danger');
+      });
     });
   };
 
