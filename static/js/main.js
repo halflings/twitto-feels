@@ -118,6 +118,7 @@ app.factory('$api', function(MongoApiService, $q, $http) {
     // Collectors API resource (non-generic)
     collectors: {
       baseURL: '/api/collectors',
+      pollURL: '/api/collector_polling',
 
       // list collectors
       // TODO get -> read
@@ -145,6 +146,16 @@ app.factory('$api', function(MongoApiService, $q, $http) {
         var deferred = $q.defer();
         $http.delete(this.baseURL + '/' + topic._id.$oid)
           .success(function() { deferred.resolve(); })
+          .error(function() { deferred.reject(); })
+        ;
+        return deferred.promise;
+      },
+
+      // poll a collector for tweets
+      poll: function(topic) {
+        var deferred = $q.defer();
+        $http.get(this.pollURL + '/' + topic._id.$oid)
+          .success(function(obj) { deferred.resolve(obj); })
           .error(function() { deferred.reject(); })
         ;
         return deferred.promise;
@@ -227,7 +238,7 @@ app.controller('MainCtrl', function($scope, $http, $api, $flash) {
 });
 
 app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
-      $timeout, $q, $api, $flash) {
+      $q, $api, $flash) {
 
   $scope.map = {
     center: { latitude: 0, longitude: 0 },
@@ -238,19 +249,21 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
 
         // Tweet markers on map
         $scope.$watch('tweets', function() {
-          _.each($scope.map.markers, function(m) { m.setMap(null); });
-          $scope.map.markers = [];
-          _.each($scope.tweets, function (tweet) {
+          for (var i = 0; i < $scope.tweets.length; i++) {
+            if (i >= 100) { break; } // MAGIIIIIC NUMBERS!!!
+
+            var tweet = $scope.tweets[i];
             if (!tweet.location.length) { return; }
             $scope.map.markers.push(new google.maps.Marker({
               position: new google.maps.LatLng(tweet.location[0], tweet.location[1]),
               map: $scope.map.instance,
               title: tweet.status
             }));
-          });
+          }
         });
       }
-    }
+    },
+    markers: []
   };
 
   $scope.tweets = [];
@@ -273,22 +286,6 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
       deferred.reject();
     });
     return deferred.promise;
-  };
-
-  $scope.pollTweets = function(delay) {
-    if (delay === undefined) { delay = 1000; }
-
-    function doPoll() {
-      $scope.reloadTweets().then(function() {
-        $scope.tweetPolling = $timeout(doPoll, delay);
-      }, function() {
-        $timeout.cancel($scope.tweetPolling);
-        $flash.add('Tweet polling stopped (unexpected error), reload page to restart', 'danger', 0);
-      });
-    }
-
-    // Start the poll!
-    doPoll();
   };
 
   // Load current topic
@@ -331,7 +328,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
   };
 });
 
-app.controller('TopicControlsCtrl', function($scope, $modal, $api, $flash) {
+app.controller('TopicControlsCtrl', function($scope, $timeout, $modal, $api, $flash) {
 
   // Collectors reloading
   $scope.reloadCollectors = function() {
@@ -353,6 +350,27 @@ app.controller('TopicControlsCtrl', function($scope, $modal, $api, $flash) {
     }
   });
 
+  $scope.pollTweets = function(delay) {
+    if (delay === undefined) { delay = 1000; }
+
+    function doPoll() {
+      $api.collectors.poll($scope.topic).then(function(tweet) {
+        $scope.tweets.push(tweet);
+        $scope.tweetPolling = $timeout(doPoll, delay);
+      }, function() {
+        $scope.stopPollingTweets();
+        $flash.add('Tweet polling stopped (unexpected error), reload page to restart', 'danger', 0);
+      });
+    }
+
+    // Start the poll!
+    doPoll();
+  };
+
+  $scope.stopPollingTweets = function() {
+    $timeout.cancel($scope.tweetPolling);
+  };
+
   // Toggle collector state
   $scope.toggleCollecting = function() {
     if (!$scope.topic) {
@@ -370,7 +388,11 @@ app.controller('TopicControlsCtrl', function($scope, $modal, $api, $flash) {
 
     var savedState = $scope.collecting;
     promise.then(function() {
-      // do nothing (maybe confirm ?)
+      if ($scope.collecting) {
+        $scope.pollTweets();
+      } else {
+        $scope.stopPollingTweets();
+      }
     }, function() {
       $scope.collecting = savedState;
     });

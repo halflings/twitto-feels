@@ -3,7 +3,8 @@ from flask.ext.restful import Api
 from mongoengine import connect
 from models import Tweet, Topic
 from models.routing import register_api_model
-from collecting.routes import CollectorListResource, CollectorResource
+from collecting.routes import (CollectorListResource,
+        CollectorResource, CollectorPollingResource)
 import config
 
 app = Flask(__name__, static_url_path='')
@@ -23,6 +24,7 @@ register_api_model(api, Tweet)
 # collectors resource
 api.add_resource(CollectorListResource, '/collectors')
 api.add_resource(CollectorResource, '/collectors/<topic_pk>')
+api.add_resource(CollectorPollingResource, '/collector_polling/<topic_pk>')
 
 if __name__ == '__main__':
     import sys

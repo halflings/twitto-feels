@@ -1,4 +1,4 @@
-from multiprocessing import Process, Event
+from multiprocessing import Process, Event, Queue
 from flask import abort
 from flask.ext.restful import Resource
 from mongoengine import ValidationError, connect
@@ -6,6 +6,7 @@ from mongoengine.errors import OperationError
 import tweepy
 from collecting import collect_for_topic
 from models import Topic
+from models.routing import ModelResource
 from helpers import get_request_json
 import config
 
@@ -16,6 +17,7 @@ class CollectorProcess(Process):
         super(CollectorProcess, self).__init__()
         self.topic = topic
         self.should_stop = Event()
+        self.queue = Queue()
 
     def run(self):
         auth = tweepy.OAuthHandler(config.consumer_key,
@@ -29,6 +31,7 @@ class CollectorProcess(Process):
     def handle_tweet(self, tweet):
         try:
             tweet.save()
+            self.queue.put(tweet)
             print 'Saved: https://twitter.com/%s/status/%s' % (tweet.user, tweet.tweet_id)
         except (ValidationError, OperationError) as e:
             print 'Not saved:', e
@@ -61,4 +64,13 @@ class CollectorResource(Resource):
         collector_proc = collectors[topic_pk]
         collector_proc.should_stop.set()
         del collectors[topic_pk]
-        collector_proc.join()
+        collector_proc.join(3) # magic number again !
+        collector_proc.terminate()
+
+class CollectorPollingResource(ModelResource):
+    def get(self, topic_pk):
+        if topic_pk not in collectors:
+            abort(403)
+        collector_proc = collectors[topic_pk]
+        tweet = collector_proc.queue.get()
+        return self.to_dict(tweet)
