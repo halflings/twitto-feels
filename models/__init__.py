@@ -85,6 +85,8 @@ def make_tweet(data, save=False):
     """
     Make a Tweet object, given a dictionary of raw tweet data.
     """
+    if 'text' not in data:
+        return
     tweet = Tweet()
     tweet.status = _preprocess_text(data['text'])
     tweet.hashtags = map(lambda hs: _preprocess_text(hs['text']), data['entities']['hashtags'])

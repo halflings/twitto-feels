@@ -269,7 +269,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
         title: tweet.status
       }));
     }
-  });
+  }, true);
 
   $scope.tweets = [];
 
@@ -308,8 +308,8 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
   });
 
   $scope.delete = function() {
-    $api.collectors.delete($scope.topic).then(function() {
-      $scope.stopPollingTweets();
+    //$scope.stopPollingTweets();
+    $api.collectors.delete($scope.topic).finally(function() {
       $api.topics.delete($scope.topic).then(function() {
         $scope.reloadTopics();
         $location.path('/');

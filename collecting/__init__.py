@@ -17,8 +17,9 @@ class TweetListener(tweepy.StreamListener):
         data = json.loads(raw_data)
         if 'limit' in data and 'track' in data['limit']:
             return
-
-        return self.on_tweet(Tweet.from_raw_tweet(data))
+        tweet = Tweet.from_raw_tweet(data)
+        if tweet:
+            return self.on_tweet(tweet)
 
     def on_tweet(self, tweet):
         """

@@ -31,8 +31,8 @@ class CollectorProcess(Process):
 
     def handle_tweet(self, tweet):
         try:
-            tweet.save()
             tweet = naive_tweet_polarity(tweet)
+            tweet.save()
             self.queue.put(tweet)
             #print 'Saved: https://twitter.com/%s/status/%s' % (tweet.user, tweet.tweet_id)
         except (ValidationError, OperationError) as e:
