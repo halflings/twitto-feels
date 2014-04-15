@@ -20,6 +20,13 @@ app.config(function($routeProvider) {
   });
 });
 
+app.filter('reversed', function() {
+  return function(items) {
+    var copy = [].concat(items);
+    return copy.reverse();
+  };
+});
+
 app.directive('ngEnter', function() {
   return function($scope, elem, attrs) {
     elem.bind('keydown keypress', function(evt) {
@@ -246,7 +253,7 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     events: {
       tilesloaded: function(map) {
         $scope.map.instance = map;
-        $scope.tweets = angular.copy($scope.tweets);
+        //$scope.tweets = angular.copy($scope.tweets);
       }
     },
     markers: []
@@ -257,12 +264,11 @@ app.controller('ViewTopicCtrl', function($scope, $routeParams, $location,
     if ($scope.map.instance === undefined) { return; }
 
     var tweetLimit = 100;
-    if ($scope.map.markers.length > tweetLimit) { return; }
     for (var i = 0; i < $scope.tweets.length; i++) {
       var tweet = $scope.tweets[i];
       if (!tweet.location.length) { continue; }
 
-      if (i > tweetLimit) { break; }
+      if ($scope.map.markers.length >= tweetLimit) { break; }
       $scope.map.markers.push(new google.maps.Marker({
         position: new google.maps.LatLng(tweet.location[0], tweet.location[1]),
         map: $scope.map.instance,
